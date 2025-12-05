@@ -6,8 +6,7 @@ import { useAppKit } from "@reown/appkit/react";
 import { useAccount, useSendTransaction, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { sdk } from '@farcaster/miniapp-sdk';
 import Loader from "./components/Loader";
-import Gallery from "./components/Gallery";
-import Navigation from "./components/Navigation";
+
 import { withRetry } from "../lib/retry";
 import { religiousWarpletAbi } from "../lib/abi";
 import { parseEther } from "viem";
@@ -32,7 +31,7 @@ export default function Home() {
   const [errorTimeout, setErrorTimeout] = useState<NodeJS.Timeout | null>(null);
   const [userRejectedError, setUserRejectedError] = useState(false);
   const [selectedReligion, setSelectedReligion] = useState('Christian');
-  const [activeView, setActiveView] = useState<'home' | 'gallery'>('home');
+
   const [isSavingToGallery, setIsSavingToGallery] = useState(false);
   const [finalIpfsUrl, setFinalIpfsUrl] = useState<string | null>(null);
 
@@ -269,100 +268,90 @@ export default function Home() {
         )}
       </header>
 
-      <main className={`${styles.content} ${activeView === 'gallery' ? styles.alignTop : ''}`}>
-        {activeView === 'home' ? (
-          <>
-            {isCheckingNft && <Loader />}
-            {error && <p className={styles.errorText}>{error}</p>}
+      <main className={styles.content}>
+        {isCheckingNft && <Loader />}
+        {error && <p className={styles.errorText}>{error}</p>}
 
+        {!isCheckingNft && !error && (
+          <div className={styles.generator}>
+            <div className={styles.imageContainer}>
+              <Image
+                key={generatedImageUrl || pfpUrl || nftImageUrl}
+                src={generatedImageUrl || pfpUrl || nftImageUrl || ''}
+                alt="Creature"
+                width={256}
+                height={256}
+                className={`${styles.imageFadeIn} ${isGenerating ? styles.heartbeat : ''}`}
+              />
+            </div>
+            <select
+              className={styles.modernSelect}
+              value={selectedReligion}
+              onChange={(e) => setSelectedReligion(e.target.value)}
+              disabled={!!generatedImageUrl}
+            >
+              {religions.map(religion => (
+                <option key={religion} value={religion}>{religion}</option>
+              ))}
+            </select>
 
-            {!isCheckingNft && !error && (
-              <div className={styles.generator}>
-
-                <div className={styles.imageContainer}>
-                  <Image
-                    key={generatedImageUrl || pfpUrl || nftImageUrl}
-                    src={generatedImageUrl || pfpUrl || nftImageUrl || ''}
-                    alt="Creature"
-                    width={256}
-                    height={256}
-                    className={`${styles.imageFadeIn} ${isGenerating ? styles.heartbeat : ''}`}
-                  />
-                </div>
-                <select
-                  className={styles.modernSelect}
-                  value={selectedReligion}
-                  onChange={(e) => setSelectedReligion(e.target.value)}
-                  disabled={!!generatedImageUrl}
+            {isConfirmed ? (
+              <div className={styles.buttonGroup}>
+                <button
+                  className={`${styles.modernButton} ${styles['share-button-background']}`}
+                  onClick={handleShare}
+                  disabled={isSavingToGallery}
                 >
-                  {religions.map(religion => (
-                    <option key={religion} value={religion}>{religion}</option>
-                  ))}
-                </select>
-
-                {isConfirmed ? (
-                  <div className={styles.buttonGroup}>
-                    <button
-                      className={`${styles.modernButton} ${styles['share-button-background']}`}
-                      onClick={handleShare}
-                      disabled={isSavingToGallery}
-                    >
-                      {isSavingToGallery ? 'Saving...' : 'Share'}
-                    </button>
-                    {!isSavingToGallery && (
-                      <button className={styles.modernButton} onClick={handleGenerateNew}>
-                        Generate New
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    className={styles.modernButton}
-                    onClick={
-                      generatedImageUrl
-                        ? handleMint
-                        : handleGenerateSmile
-                    }
-                    disabled={isGenerating || isPreparing || isMinting}
-                  >
-                    {isGenerating ? (
-                      <Loader />
-                    ) : isPreparing ? (
-                      "Preparing..."
-                    ) : isMinting ? (
-                      "Minting..."
-                    ) : generatedImageUrl ? (
-                      "Mint"
-                    ) : (
-                      "Generate"
-                    )}
+                  {isSavingToGallery ? 'Saving...' : 'Share'}
+                </button>
+                {!isSavingToGallery && (
+                  <button className={styles.modernButton} onClick={handleGenerateNew}>
+                    Generate New
                   </button>
                 )}
-                {isGenerating && <p className={styles.waitText}>please wait...</p>}
-
-                {isConfirming && <p>Waiting for confirmation...</p>}
-                {isConfirmed && (
-                  <div>
-                    <p>Minted Successfully!</p>
-                    <a
-                      href={`https://basescan.org/tx/${hash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.link}
-                    >
-                      View on Basescan
-                    </a>
-                  </div>
+              </div>
+            ) : (
+              <button
+                className={styles.modernButton}
+                onClick={
+                  generatedImageUrl
+                    ? handleMint
+                    : handleGenerateSmile
+                }
+                disabled={isGenerating || isPreparing || isMinting}
+              >
+                {isGenerating ? (
+                  <Loader />
+                ) : isPreparing ? (
+                  "Preparing..."
+                ) : isMinting ? (
+                  "Minting..."
+                ) : generatedImageUrl ? (
+                  "Mint"
+                ) : (
+                  "Generate"
                 )}
+              </button>
+            )}
+            {isGenerating && <p className={styles.waitText}>please wait...</p>}
+
+            {isConfirming && <p>Waiting for confirmation...</p>}
+            {isConfirmed && (
+              <div>
+                <p>Minted Successfully!</p>
+                <a
+                  href={`https://basescan.org/tx/${hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.link}
+                >
+                  View on Basescan
+                </a>
               </div>
             )}
-          </>
-        ) : (
-          <Gallery setActiveView={setActiveView} activeView={activeView} />
+          </div>
         )}
       </main>
-
-      <Navigation activeView={activeView} setActiveView={setActiveView} />
     </div>
   );
 }
