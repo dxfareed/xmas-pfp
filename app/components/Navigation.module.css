@@ -1,0 +1,27 @@
+.nav {
+  display: flex;
+  justify-content: space-around;
+  padding: 1rem;
+  border-top: 1px solid #333;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #1a1a1a;
+}
+
+.navButton {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+}
+
+.navButton.active {
+  color: white;
+}
