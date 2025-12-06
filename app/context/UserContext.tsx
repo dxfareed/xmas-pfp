@@ -7,6 +7,7 @@ type UserContextType = {
   fid: number | null;
   username: string | null;
   pfpUrl: string | null;
+  isLoading: boolean;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -15,6 +16,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [fid, setFid] = useState<number | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [pfpUrl, setPfpUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function getFarcasterUser() {
@@ -23,17 +25,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (user) {
           setFid(user.fid);
           setUsername(user.username ?? null);
-          setPfpUrl("https://tba-mobile.mypinata.cloud/ipfs/QmcXPLBpv8RDK92kkBvZGG9qFAgKaF7Ti74QVSkihkwwGX?pinataGatewayToken=3nq0UVhtd3rYmgYDdb1I9qv7rHsw-_DzwdWkZPRQ-QW1avFI9dCS8knaSfq_R5_q");
-          //setPfpUrl(user.pfpUrl ?? null);
+          //setPfpUrl("https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/fa551416-4bdd-4e0f-63f3-08f2b82dc700/original");
+          setPfpUrl(user.pfpUrl ?? null);
         }
       } catch (error) {
         console.error("Failed to get Farcaster user:", error);
+      } finally {
+        setIsLoading(false);
       }
     }
     getFarcasterUser();
   }, []);
 
-  const value = { fid, username, pfpUrl };
+  const value = { fid, username, pfpUrl, isLoading };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }

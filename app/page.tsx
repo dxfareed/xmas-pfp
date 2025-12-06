@@ -20,11 +20,13 @@ export default function Home() {
   const { isConnected, address, isConnecting } = useAccount();
   const { data: hash, writeContract, isPending: isMinting, error: mintError, reset } = useWriteContract();
 
-  const { fid, pfpUrl } = useUser();
+  const { fid, pfpUrl, isLoading: isUserLoading } = useUser();
+
+
 
   const [nftImageUrl, setNftImageUrl] = useState<string | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
-  const [isCheckingNft, setIsCheckingNft] = useState(false);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export default function Home() {
   const [isSavingToGallery, setIsSavingToGallery] = useState(false);
   const [finalIpfsUrl, setFinalIpfsUrl] = useState<string | null>(null);
 
-  const [hasNft, setHasNft] = useState(true);
+
 
   const handleSetError = (errorMessage: string) => {
     if (errorTimeout) {
@@ -55,11 +57,7 @@ export default function Home() {
     return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
   };
 
-  useEffect(() => {
-    if (isConnected) {
-      checkNftOwnership();
-    }
-  }, [isConnected]);
+
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({
@@ -68,40 +66,7 @@ export default function Home() {
 
 
 
-  const checkNftOwnership = async () => {
-    setIsCheckingNft(true);
-    setError(null);
-    setHasNft(true);
-    try {
-      const { token } = await sdk.quickAuth.getToken();
-      const res = await withRetry(async () => {
-        const response = await fetch('/api/nft/check', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.statusText}`);
-        }
-        return response;
-      });
 
-      const data = await res.json();
-      if (res.ok && data.holdingNft) {
-        setNftImageUrl(data.nftImage);
-        setHasNft(true);
-      } else {
-        setHasNft(false);
-      }
-    } catch (err) {
-      handleSetError("Failed to check NFT ownership.");
-      console.error(err);
-      setHasNft(false);
-    } finally {
-      setIsCheckingNft(false);
-    }
-  };
 
   const generateImage = async () => {
     const sourceImage = pfpUrl || nftImageUrl;
@@ -269,87 +234,93 @@ export default function Home() {
       </header>
 
       <main className={styles.content}>
-        {isCheckingNft && <Loader />}
-        {error && <p className={styles.errorText}>{error}</p>}
+        {isUserLoading ? (
+          <Loader />
+        ) : (
+          <>
+            {error && <p className={styles.errorText}>{error}</p>}
 
-        {!isCheckingNft && !error && (
-          <div className={styles.generator}>
-            <div className={styles.imageContainer}>
-              <Image
-                key={generatedImageUrl || pfpUrl || nftImageUrl}
-                src={generatedImageUrl || pfpUrl || nftImageUrl || ''}
-                alt="Creature"
-                width={256}
-                height={256}
-                className={`${styles.imageFadeIn} ${isGenerating ? styles.heartbeat : ''}`}
-              />
-            </div>
-            <select
-              className={styles.modernSelect}
-              value={selectedReligion}
-              onChange={(e) => setSelectedReligion(e.target.value)}
-              disabled={!!generatedImageUrl}
-            >
-              {religions.map(religion => (
-                <option key={religion} value={religion}>{religion}</option>
-              ))}
-            </select>
-
-            {isConfirmed ? (
-              <div className={styles.buttonGroup}>
-                <button
-                  className={`${styles.modernButton} ${styles['share-button-background']}`}
-                  onClick={handleShare}
-                  disabled={isSavingToGallery}
+            {!error && (
+              <div className={styles.generator}>
+                <div className={styles.imageContainer}>
+                  <Image
+                    key={generatedImageUrl || pfpUrl || nftImageUrl}
+                    src={generatedImageUrl || pfpUrl || nftImageUrl || ''}
+                    alt="Creature"
+                    width={256}
+                    height={256}
+                    className={`${styles.imageFadeIn} ${isGenerating ? styles.heartbeat : ''}`}
+                  />
+                </div>
+                <select
+                  className={styles.modernSelect}
+                  value={selectedReligion}
+                  onChange={(e) => setSelectedReligion(e.target.value)}
+                  disabled={!!generatedImageUrl}
                 >
-                  {isSavingToGallery ? 'Saving...' : 'Share'}
-                </button>
-                {!isSavingToGallery && (
-                  <button className={styles.modernButton} onClick={handleGenerateNew}>
-                    Generate New
+                  {religions.map(religion => (
+                    <option key={religion} value={religion}>{religion}</option>
+                  ))}
+                </select>
+
+                {isConfirmed ? (
+                  <div className={styles.buttonGroup}>
+                    <button
+                      className={`${styles.modernButton} ${styles['share-button-background']}`}
+                      onClick={handleShare}
+                      disabled={isSavingToGallery}
+                    >
+                      {isSavingToGallery ? 'Saving...' : 'Share'}
+                    </button>
+                    {!isSavingToGallery && (
+                      <button className={styles.modernButton} onClick={handleGenerateNew}>
+                        Generate New
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    className={styles.modernButton}
+                    onClick={
+                      generatedImageUrl
+                        ? handleMint
+                        : handleGenerateSmile
+                    }
+                    disabled={isGenerating || isPreparing || isMinting}
+                  >
+                    {isGenerating ? (
+                      <Loader />
+                    ) : isPreparing ? (
+                      "Preparing..."
+                    ) : isMinting ? (
+                      "Minting..."
+                    ) : generatedImageUrl ? (
+                      "Mint"
+                    ) : (
+                      "Generate"
+                    )}
                   </button>
                 )}
-              </div>
-            ) : (
-              <button
-                className={styles.modernButton}
-                onClick={
-                  generatedImageUrl
-                    ? handleMint
-                    : handleGenerateSmile
-                }
-                disabled={isGenerating || isPreparing || isMinting}
-              >
-                {isGenerating ? (
-                  <Loader />
-                ) : isPreparing ? (
-                  "Preparing..."
-                ) : isMinting ? (
-                  "Minting..."
-                ) : generatedImageUrl ? (
-                  "Mint"
-                ) : (
-                  "Generate"
-                )}
-              </button>
-            )}
-            {isGenerating && <p className={styles.waitText}>please wait...</p>}
+                {isGenerating && <p className={styles.waitText}>please wait...</p>}
 
-            {isConfirming && <p>Waiting for confirmation...</p>}
-            {isConfirmed && (
-              <div>
-                <p>Minted Successfully!</p>
-                <a
-                  href={`https://basescan.org/tx/${hash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.link}
-                >
-                  View on Basescan
-                </a>
+                {isConfirming && <p>Waiting for confirmation...</p>}
+                {isConfirmed && (
+                  <div>
+                    <p>Minted Successfully!</p>
+                    <a
+                      href={`https://basescan.org/tx/${hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.link}
+                    >
+                      View on Basescan
+                    </a>
+                  </div>
+                )}
               </div>
             )}
-          </div>
+
+          </>
         )}
       </main>
     </div>
