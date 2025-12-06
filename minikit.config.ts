@@ -16,21 +16,21 @@ export const minikitConfig = {
   },
   frame: {
     version: "1",
-    name: "Religious Warplet",
-    subtitle: "Choose your warplet faith",
-    description: "Warplet for all religions, choose your warplet faith",
+    name: "Xmas PFP",
+    subtitle: "Merry Christmas",
+    description: "Update your pfp for Christmas",
     iconUrl: `${ROOT_URL}/icon.png`,
     splashImageUrl: `${ROOT_URL}/icon.png`,
-    splashBackgroundColor: "#7A6FAF",
+    splashBackgroundColor: "#f4f3faff",
     homeUrl: ROOT_URL,
     imageUrl: `${ROOT_URL}/hero.png`,
     webhookUrl: `${ROOT_URL}/api/webhook`,
     primaryCategory: "social",
     tags: ["social", "enternainment"],
     heroImageUrl: `${ROOT_URL}/hero.png`,
-    ogTitle: "Choose your warplet faith",
-    ogDescription: "Warplet for all religions, choose your warplet faith",
+    ogTitle: "Update your pfp for Christmas",
+    ogDescription: "Update your pfp for Christmas",
     ogImageUrl: `${ROOT_URL}/hero.png`,
-    tagline: "Choose your warplet faith"
+    tagline: "Update your pfp for Christmas"
   },
 } as const;

@@ -17,3 +17,10 @@ model UserNFTs {
   nfts      Json
   updatedAt DateTime @updatedAt
 }
+
+model GeneratedImage {
+  ownerFid    BigInt   @id
+  imageUrl    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

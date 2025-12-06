@@ -148,7 +148,7 @@ export async function makeCreatureSmile(imageUrl: string, religion: string, gend
 
     let outfitInstruction = '';
     if (religion === 'Christian') {
-      outfitInstruction = `Do not dress the creature or remove their cloth. Carefully place a Christmas hat on their head so it fits naturally and realistically over their hair or head shape. The hat should look like it is actually being worn, not just floating. Keep the rest of their appearance exactly the same.`;
+      outfitInstruction = `Do not dress the creature or remove their cloth. If the creature is already wearing a hat or headgear, remove it first. Then, carefully place a Christmas/Santa hat on their head so it fits naturally and realistically over their hair or head shape. The hat must be red and white, but its design style (texture, shading, art style) should match the creature's overall look and aesthetic. The hat should look like it is actually being worn, not just floating. Keep the rest of their appearance exactly the same.`;
     } else if (religion === 'Jewish') {
       outfitInstruction = `Dress it in unique, modern religious Jewish attire, making it look like it's in its 40s.`;
     } else if (religion === 'Warplette') {

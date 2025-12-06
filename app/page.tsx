@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import { useAppKit } from "@reown/appkit/react";
@@ -36,6 +36,41 @@ export default function Home() {
 
   const [isSavingToGallery, setIsSavingToGallery] = useState(false);
   const [finalIpfsUrl, setFinalIpfsUrl] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [hasAlreadyGenerated, setHasAlreadyGenerated] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const santaAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Check if user has already generated an image
+  useEffect(() => {
+    const checkExistingGeneration = async () => {
+      try {
+        const { token } = await sdk.quickAuth.getToken();
+        const response = await fetch('/api/generated-image', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.hasGenerated && data.imageUrl) {
+            setGeneratedImageUrl(data.imageUrl);
+            setHasAlreadyGenerated(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking existing generation:', error);
+      }
+    };
+
+    if (fid) {
+      checkExistingGeneration();
+    }
+  }, [fid]);
 
 
 
@@ -93,6 +128,28 @@ export default function Home() {
       const data = await res.json();
       if (res.ok) {
         setGeneratedImageUrl(data.newImageUrl);
+        setHasAlreadyGenerated(true);
+
+        // Save generated image to database
+        try {
+          const { token: saveToken } = await sdk.quickAuth.getToken();
+          await fetch('/api/generated-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${saveToken}`,
+            },
+            body: JSON.stringify({ imageUrl: data.newImageUrl }),
+          });
+        } catch (saveError) {
+          console.error('Error saving generated image:', saveError);
+        }
+
+        // Play santa sound on success
+        if (santaAudioRef.current) {
+          santaAudioRef.current.currentTime = 0;
+          santaAudioRef.current.play().catch(e => console.log('Audio play failed:', e));
+        }
       } else {
         handleSetError("rate limited. please try again");
       }
@@ -187,21 +244,68 @@ export default function Home() {
     });
   };
 
-  const handleShare = () => {
-    const rootUrl = process.env.NEXT_PUBLIC_URL || 'https://your-app-url.com'; // Fallback URL
-    const imageUrlToShare = finalIpfsUrl || generatedImageUrl;
+  const uploadImage = async (imageData: string) => {
+    const { token } = await sdk.quickAuth.getToken();
+    const response = await fetch('/api/upload-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ imageData }),
+    });
 
-    if (!imageUrlToShare) {
-      handleSetError("Image URL not available for sharing.");
-      return;
+    if (!response.ok) {
+      throw new Error('Failed to upload image');
     }
 
-    const shareUrl = `${rootUrl}/share-frame/generated?imageUrl=${encodeURIComponent(imageUrlToShare)}`;
+    const { url } = await response.json();
+    return url;
+  };
 
-    sdk.actions.composeCast({
-      text: "My warplet found faith",
-      embeds: [shareUrl],
-    });
+  const handleDownload = async () => {
+    if (!generatedImageUrl) return;
+    setIsDownloading(true);
+
+    try {
+      let urlToOpen = generatedImageUrl;
+
+      if (generatedImageUrl.startsWith('data:')) {
+        urlToOpen = await uploadImage(generatedImageUrl);
+      }
+
+      sdk.actions.openUrl(urlToOpen);
+    } catch (error) {
+      console.error("Error opening image:", error);
+      handleSetError("Failed to open image in browser.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const rootUrl = process.env.NEXT_PUBLIC_URL || 'https://your-app-url.com';
+    if (!generatedImageUrl) return;
+
+    setIsSharing(true);
+
+    try {
+      let imageUrlToShare = finalIpfsUrl || generatedImageUrl;
+
+      if (imageUrlToShare.startsWith('data:')) {
+        imageUrlToShare = await uploadImage(imageUrlToShare);
+      }
+
+      sdk.actions.composeCast({
+        text: "I just updated my pfp for Christmas 🎄🎄 on Xmas PFP by @dxfareed",
+        embeds: [imageUrlToShare, rootUrl],
+      });
+    } catch (error) {
+      console.error("Error sharing:", error);
+      handleSetError("Failed to share image.");
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const handleGenerateNew = () => {
@@ -212,6 +316,20 @@ export default function Home() {
 
   return (
     <div className={styles.container}>
+      <audio ref={audioRef} src="/sound/xmassound.mp3" autoPlay loop />
+      <audio ref={santaAudioRef} src="/sound/santa.mp3" />
+      <button
+        className={styles.muteButton}
+        onClick={() => {
+          if (audioRef.current) {
+            audioRef.current.muted = !audioRef.current.muted;
+            setIsMuted(!isMuted);
+          }
+        }}
+        aria-label={isMuted ? 'Unmute' : 'Mute'}
+      >
+        {isMuted ? '🔇' : '🔊'}
+      </button>
       {userRejectedError && (
         <div className={styles.rejectedOverlay}>
           <Image src="/win98logo/wrong.png" alt="Error" width={48} height={48} />
@@ -263,39 +381,34 @@ export default function Home() {
                   ))}
                 </select>
 
-                {isConfirmed ? (
+                {generatedImageUrl ? (
                   <div className={styles.buttonGroup}>
                     <button
                       className={`${styles.modernButton} ${styles['share-button-background']}`}
                       onClick={handleShare}
-                      disabled={isSavingToGallery}
+                      disabled={isSharing || isDownloading}
                     >
-                      {isSavingToGallery ? 'Saving...' : 'Share'}
+                      {isSharing ? 'Sharing...' : 'Share'}
                     </button>
-                    {!isSavingToGallery && (
-                      <button className={styles.modernButton} onClick={handleGenerateNew}>
-                        Generate New
-                      </button>
-                    )}
+                    <button
+                      className={styles.modernButton}
+                      onClick={handleDownload}
+                      disabled={isSharing || isDownloading}
+                    >
+                      {isDownloading ? 'Opening...' : 'Download'}
+                    </button>
+
                   </div>
                 ) : (
                   <button
                     className={styles.modernButton}
-                    onClick={
-                      generatedImageUrl
-                        ? handleMint
-                        : handleGenerateSmile
-                    }
-                    disabled={isGenerating || isPreparing || isMinting}
+                    onClick={handleGenerateSmile}
+                    disabled={isGenerating || isPreparing}
                   >
                     {isGenerating ? (
                       <Loader />
                     ) : isPreparing ? (
                       "Preparing..."
-                    ) : isMinting ? (
-                      "Minting..."
-                    ) : generatedImageUrl ? (
-                      "Mint"
                     ) : (
                       "Generate"
                     )}

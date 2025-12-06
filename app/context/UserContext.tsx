@@ -25,8 +25,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (user) {
           setFid(user.fid);
           setUsername(user.username ?? null);
-          //setPfpUrl("https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/fa551416-4bdd-4e0f-63f3-08f2b82dc700/original");
-          setPfpUrl(user.pfpUrl ?? null);
+          setPfpUrl("https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/fa551416-4bdd-4e0f-63f3-08f2b82dc700/original");
+          //setPfpUrl("https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/14a815fa-d6cc-4388-e8b7-eaf187f60400/rectcrop3");
+          //setPfpUrl(user.pfpUrl ?? null);
         }
       } catch (error) {
         console.error("Failed to get Farcaster user:", error);
