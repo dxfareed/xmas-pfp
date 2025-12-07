@@ -21,7 +21,7 @@ export const minikitConfig = {
     description: "Update your pfp for Christmas",
     iconUrl: `${ROOT_URL}/icon.png`,
     splashImageUrl: `${ROOT_URL}/icon.png`,
-    splashBackgroundColor: "#f4f3faff",
+    splashBackgroundColor: "#000",
     homeUrl: ROOT_URL,
     imageUrl: `${ROOT_URL}/hero.png`,
     webhookUrl: `${ROOT_URL}/api/webhook`,

@@ -12,6 +12,178 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id                   String                     @id @default(cuid())
+  walletAddress        String                     @unique
+  fid                  BigInt                     @unique
+  username             String?                    @unique
+  pfpUrl               String?
+  streak               Int                        @default(0)
+  level                Int                        @default(1)
+  totalClaimed         Decimal                    @default(0)
+  createdAt            DateTime                   @default(now())
+  totalPoints          BigInt                     @default(0)
+  weeklyPoints         BigInt                     @default(0)
+  lastClaimedAt        DateTime?
+  claimsToday          Int                        @default(0)
+  lastClaimDate        DateTime?
+  claimWindowStart     DateTime?
+  lastMultiplierUsedAt DateTime?
+  registrationStatus   RegistrationStatus         @default(PENDING)
+  notificationToken    String?
+  verifiedWallets      String[]                   @default([])
+  highScore            Int                        @default(0)
+  powerupExpiration    DateTime?
+  claims               Claim[]
+  gameSessions         GameSession[]
+  events               UserEvent[]
+  taskCompletions      UserTaskCompletion[]
+  leaderboardHistory   WeeklyLeaderboardHistory[]
+  initiatedMatches   Match[]                    @relation("InitiatedMatches")
+  opponentMatches    Match[]                    @relation("OpponentMatches")
+  wonMatches         Match[]                    @relation("WonMatches")
+}
+
+model Claim {
+  id        String   @id @default(cuid())
+  txHash    String   @unique
+  amount    Decimal
+  timestamp DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model UserEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, type, createdAt])
+}
+
+model Task {
+  id           String               @id @default(cuid())
+  title        String
+  description  String
+  rewardPoints Int
+  type         TaskType
+  actionUrl    String?
+  checkKey     String               @unique
+  expiresAt    DateTime?
+  completions  UserTaskCompletion[]
+}
+
+model UserTaskCompletion {
+  id          String   @id @default(cuid())
+  userId      String
+  taskId      String
+  completedAt DateTime @default(now())
+  task        Task     @relation(fields: [taskId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model IndexerState {
+  id                 String @id @default("main_indexer")
+  lastProcessedBlock BigInt
+}
+
+model GameSession {
+  id        String    @id @default(cuid())
+  userId    String
+  score     Int       @default(0)
+  createdAt DateTime  @default(now())
+  endTime   DateTime?
+  startTime DateTime  @default(now())
+  status    String    @default("IN_PROGRESS")
+  metadata  Json?
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model WeeklyLeaderboardHistory {
+  id           String   @id @default(cuid())
+  weekId       String
+  userId       String
+  rank         Int
+  weeklyPoints BigInt
+  rewardEarned Decimal  @default(0)
+  rewardToken  String   @default("$ENB")
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@unique([weekId, userId])
+  @@index([weekId])
+  @@index([userId])
+}
+
+model Match {
+  id              String   @id @default(cuid())
+  stakedAmount    Decimal
+  amountEarned    Decimal?
+
+  initiatorId     String
+  initiator       User     @relation("InitiatedMatches", fields: [initiatorId], references: [id])
+  opponentId      String
+  opponent        User     @relation("OpponentMatches", fields: [opponentId], references: [id])
+  initiatorWalletAddress String?
+  opponentWalletAddress  String?
+
+  status          MatchStatus @default(PENDING)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  expiresAt       DateTime // For the 6-hour invitation expiry
+  matchExpiresAt  DateTime? // For the 6-hour overall match expiry
+  initiatorSessionStartsAt DateTime?
+  opponentSessionStartsAt  DateTime?
+
+  initiatorScore  Int?
+  opponentScore   Int?
+  initiatorTotalScore BigInt?
+  opponentTotalScore  BigInt?
+  winnerId        String?
+  winner          User?    @relation("WonMatches", fields: [winnerId], references: [id])
+
+  @@index([initiatorId])
+  @@index([opponentId])
+  @@index([status])
+}
+
+enum RegistrationStatus {
+  PENDING
+  ACTIVE
+}
+
+enum TaskType {
+  DEFAULT
+  DAILY
+  PARTNER
+}
+
+enum MatchStatus {
+  PENDING
+  INVITED
+  ACTIVE
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+model FamilyCache {
+  fid       BigInt   @id
+  pfpUrl    String?
+  family    Json
+  updatedAt DateTime @updatedAt
+}
+
+model UserCache {
+  fid         BigInt   @id
+  userProfile Json
+  updatedAt   DateTime @updatedAt
+}
+
 model UserNFTs {
   ownerFid  BigInt   @id
   nfts      Json
@@ -21,6 +193,7 @@ model UserNFTs {
 model GeneratedImage {
   ownerFid    BigInt   @id
   imageUrl    String
+  hasMinted   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

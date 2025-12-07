@@ -35,7 +35,7 @@ export async function generateMetadata({ searchParams }: any): Promise<Metadata>
     version: minikitConfig.frame.version,
     imageUrl: frameImageUrl.toString(),
     button: {
-      title: `Generate Religious Warplet`,
+      title: `Generate Xmas PFP`,
       action: {
         name: `Generate ${minikitConfig.frame.name}`,
         type: "launch_frame",
@@ -58,7 +58,7 @@ export async function generateMetadata({ searchParams }: any): Promise<Metadata>
       'og:title': `A new Warplet was generated!`,
       'og:image': frameImageUrl.toString(),
     },
-  }; */  
+  }; */
 
   return {
     title: minikitConfig.frame.name,
@@ -67,7 +67,7 @@ export async function generateMetadata({ searchParams }: any): Promise<Metadata>
       "fc:frame": fcFrameContent,
     },
   };
-    
+
 }
 
 // This page component is not rendered in a browser when a frame is viewed.

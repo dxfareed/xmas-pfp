@@ -239,3 +239,79 @@
   transform: translate(2px, 2px);
   box-shadow: 2px 2px 0px #000;
 }
+
+.notFarcasterMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  background-color: #fff;
+  border: 4px solid #000;
+  box-shadow: 8px 8px 0px #165B33;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.notFarcasterMessage h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #D42426;
+}
+
+.notFarcasterMessage p {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.notFarcasterMessage a {
+  margin-top: 1rem;
+  text-decoration: none;
+}
+
+.giftButton {
+  background-color: #165B33;
+  border: 3px solid #000;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px #000;
+  transition: all 0.2s ease;
+  color: #fff;
+  margin-right: 1rem;
+}
+
+.giftButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.giftButton:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px #000;
+}
+
+.giftAvailable {
+  background-color: #D42426;
+  animation: giftPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes giftPulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 3px 3px 0px #000;
+  }
+
+  50% {
+    transform: scale(1.1);
+    box-shadow: 5px 5px 0px #000;
+  }
+}

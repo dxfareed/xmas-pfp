@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 
 // mainnet 
 //0x999F46f34292771f77Ed1a5F59ca18eA1Ac29fF7
-const NFT_CONTRACT_ADDRESS = '0x699727f9e01a822efdcf7333073f0461e5914b4e';
+const NFT_CONTRACT_ADDRESS = '0x02aB00bBbfaB9627a20D29f5c225441AFF8A5Aa6';
 const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
 
 // Cache is considered stale after 6 hours
@@ -72,7 +72,7 @@ async function getNftImageFromAlchemy(address: string): Promise<string | null> {
 export async function checkNftOwnershipOnServer(user: User): Promise<{ user: User; holdingNft: boolean; nftImage: string | null }> {
   const fid = BigInt(user.fid);
   console.log(`Fetching live minting status for FID: ${fid}...`);
-  
+
   let holdingNft = false;
   let nftImage: string | null = null;
 
@@ -86,7 +86,7 @@ export async function checkNftOwnershipOnServer(user: User): Promise<{ user: Use
     if (hasMinted) {
       holdingNft = true;
       nftImage = await getNftImageFromAlchemy(address);
-      break; 
+      break;
     }
   }
 

@@ -17,10 +17,11 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({
                 hasGenerated: true,
                 imageUrl: existingImage.imageUrl,
+                hasMinted: existingImage.hasMinted,
             });
         }
 
-        return NextResponse.json({ hasGenerated: false, imageUrl: null });
+        return NextResponse.json({ hasGenerated: false, imageUrl: null, hasMinted: false });
     } catch (error) {
         console.error("Error checking generated image:", error);
         return NextResponse.json(
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
         await prisma.generatedImage.upsert({
             where: { ownerFid: BigInt(fid) },
             update: { imageUrl, updatedAt: new Date() },
-            create: { ownerFid: BigInt(fid), imageUrl },
+            create: { ownerFid: BigInt(fid), imageUrl, hasMinted: false },
         });
 
         return NextResponse.json({ success: true });
@@ -58,3 +59,26 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+export async function PATCH(request: NextRequest) {
+    const fid = await isAuthenticated(request);
+    if (fid instanceof NextResponse) {
+        return fid;
+    }
+
+    try {
+        await prisma.generatedImage.update({
+            where: { ownerFid: BigInt(fid) },
+            data: { hasMinted: true, updatedAt: new Date() },
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error marking as minted:", error);
+        return NextResponse.json(
+            { message: "Failed to mark as minted" },
+            { status: 500 }
+        );
+    }
+}
+
