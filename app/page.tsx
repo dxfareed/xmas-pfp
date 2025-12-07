@@ -6,21 +6,24 @@ import { useAppKit } from "@reown/appkit/react";
 import { useAccount, useSendTransaction, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { sdk } from '@farcaster/miniapp-sdk';
 import Loader from "./components/Loader";
+import { Gift } from 'lucide-react';
 
 import { withRetry } from "../lib/retry";
-import { religiousWarpletAbi } from "../lib/abi";
+import { xmasAbi } from "../lib/abi";
 import { parseEther } from "viem";
 import { useUser } from "./context/UserContext";
+import { dailyGiftAbi } from "../lib/dailyGiftAbi";
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 const PAY_ADDRESS = process.env.NEXT_PUBLIC_BASEBUILDER_ALLOWED_ADDRESS as `0x${string}`;
+const DAILY_GIFT_CONTRACT = process.env.NEXT_PUBLIC_DAILY_GIFT_CONTRACT as `0x${string}`;
 
 export default function Home() {
   const { open } = useAppKit();
   const { isConnected, address, isConnecting } = useAccount();
   const { data: hash, writeContract, isPending: isMinting, error: mintError, reset } = useWriteContract();
 
-  const { fid, pfpUrl, isLoading: isUserLoading } = useUser();
+  const { fid, pfpUrl, isLoading: isUserLoading, isInFarcaster } = useUser();
 
 
 
@@ -32,7 +35,6 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [errorTimeout, setErrorTimeout] = useState<NodeJS.Timeout | null>(null);
   const [userRejectedError, setUserRejectedError] = useState(false);
-  const [selectedReligion, setSelectedReligion] = useState('Christian');
 
   const [isSavingToGallery, setIsSavingToGallery] = useState(false);
   const [finalIpfsUrl, setFinalIpfsUrl] = useState<string | null>(null);
@@ -40,30 +42,84 @@ export default function Home() {
   const [isSharing, setIsSharing] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [hasAlreadyGenerated, setHasAlreadyGenerated] = useState(false);
+  const [hasMinted, setHasMinted] = useState(false);
+  const [isPreparingMint, setIsPreparingMint] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const santaAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Daily Gift State
+  const [canClaimGift, setCanClaimGift] = useState(false);
+  const [isClaimingGift, setIsClaimingGift] = useState(false);
+  const [giftClaimed, setGiftClaimed] = useState(false);
+  const [timeUntilNextClaim, setTimeUntilNextClaim] = useState(0);
+
+  // Daily Gift Claim Transaction
+  const { data: giftHash, writeContract: writeGiftContract, isPending: isGiftPending } = useWriteContract();
+  const { isLoading: isGiftConfirming, isSuccess: isGiftConfirmed } = useWaitForTransactionReceipt({ hash: giftHash });
+
+  // Check daily gift status
+  useEffect(() => {
+    const checkGiftStatus = async () => {
+      if (!fid) return;
+      try {
+        await withRetry(async () => {
+          const { token } = await sdk.quickAuth.getToken();
+          const response = await fetch('/api/daily-gift/status', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (!response.ok) throw new Error('Failed to fetch gift status');
+          const data = await response.json();
+          setCanClaimGift(data.canClaim);
+          setTimeUntilNextClaim(data.timeUntilNextClaim);
+        }, 3, 1000);
+      } catch (error) {
+        console.error('Error checking gift status after retries:', error);
+      }
+    };
+    checkGiftStatus();
+  }, [fid, giftClaimed]);
+
+  // Update state when gift is claimed
+  useEffect(() => {
+    if (isGiftConfirmed) {
+      setGiftClaimed(true);
+      setCanClaimGift(false);
+
+      // Open compose cast popup
+      const rootUrl = process.env.NEXT_PUBLIC_URL || 'https://your-app-url.com';
+      sdk.actions.composeCast({
+        text: "I just claimed my daily xmas gift! 🎁🎄 Go claim yours on Xmas PFP",
+        embeds: [rootUrl],
+      });
+    }
+  }, [isGiftConfirmed]);
 
   // Check if user has already generated an image
   useEffect(() => {
     const checkExistingGeneration = async () => {
       try {
-        const { token } = await sdk.quickAuth.getToken();
-        const response = await fetch('/api/generated-image', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        await withRetry(async () => {
+          const { token } = await sdk.quickAuth.getToken();
+          const response = await fetch('/api/generated-image', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
 
-        if (response.ok) {
+          if (!response.ok) throw new Error('Failed to fetch generated image');
           const data = await response.json();
           if (data.hasGenerated && data.imageUrl) {
             setGeneratedImageUrl(data.imageUrl);
             setHasAlreadyGenerated(true);
+            if (data.hasMinted) {
+              setHasMinted(true);
+            }
           }
-        }
+        }, 3, 1000);
       } catch (error) {
-        console.error('Error checking existing generation:', error);
+        console.error('Error checking existing generation after retries:', error);
       }
     };
 
@@ -85,7 +141,7 @@ export default function Home() {
     setErrorTimeout(timeout);
   };
 
-  const religions = [/* 'Warplette', */'Christian', 'Muslim', 'Buddhist', 'Jewish', 'Hindu', 'Satanic'];
+
 
   const shortenAddress = (addr: string) => {
     if (!addr) return '';
@@ -117,7 +173,7 @@ export default function Home() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
-          body: JSON.stringify({ imageUrl: sourceImage, religion: selectedReligion }),
+          body: JSON.stringify({ imageUrl: sourceImage, religion: 'Christian' }),
         });
         if (!response.ok) {
           throw new Error(`Server error: ${response.statusText}`);
@@ -216,6 +272,15 @@ export default function Home() {
           if (response.ok && data.imageUrl) {
             console.log("Found tokenUri, setting state.", data.imageUrl);
             setFinalIpfsUrl(data.imageUrl);
+
+            // Mark as minted in GeneratedImage table
+            await fetch('/api/generated-image', {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            });
+            setHasMinted(true);
           } else {
             throw new Error(data.error || "Failed to save mint to DB.");
           }
@@ -233,15 +298,24 @@ export default function Home() {
   const handleMint = async () => {
     if (!generatedImageUrl || !address) return;
 
-    const placeholderTokenUri = "ipfs://bafkreie3c7t6g3k43r5n7t3g6j6z6z6z6z6z6z6z6z6z6z6z6z6z6z";
+    setIsPreparingMint(true);
+    // Upload image to IPFS first
+    try {
+      const imageUrl = await uploadImage(generatedImageUrl);
 
-    writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: religiousWarpletAbi,
-      functionName: 'safeMint',
-      args: [address, placeholderTokenUri],
-      value: parseEther("0.0003"),
-    });
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: xmasAbi,
+        functionName: 'safeMint',
+        args: [address, imageUrl],
+        value: parseEther("0"), // Free mint for now
+      });
+    } catch (error) {
+      console.error('Error uploading image for mint:', error);
+      handleSetError('Failed to prepare mint. Please try again.');
+    } finally {
+      setIsPreparingMint(false);
+    }
   };
 
   const uploadImage = async (imageData: string) => {
@@ -337,6 +411,44 @@ export default function Home() {
         </div>
       )}
       <header className={styles.headerWrapper}>
+        {/* Daily Gift Button - only show if user has minted */}
+        {isConnected && DAILY_GIFT_CONTRACT && hasMinted && (
+          <button
+            className={`${styles.giftButton} ${canClaimGift ? styles.giftAvailable : ''}`}
+            onClick={async () => {
+              if (!canClaimGift || !address || isClaimingGift || isGiftPending || isGiftConfirming) return;
+              setIsClaimingGift(true);
+              try {
+                const { token } = await sdk.quickAuth.getToken();
+                const signResponse = await fetch('/api/daily-gift/sign', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ recipientAddress: address }),
+                });
+                if (!signResponse.ok) throw new Error('Failed to get signature');
+                const { signature, deadline } = await signResponse.json();
+                writeGiftContract({
+                  address: DAILY_GIFT_CONTRACT,
+                  abi: dailyGiftAbi,
+                  functionName: 'claim',
+                  args: [BigInt(fid!), address, BigInt(deadline), signature],
+                });
+              } catch (error) {
+                console.error('Error claiming gift:', error);
+                handleSetError('Failed to claim gift');
+              } finally {
+                setIsClaimingGift(false);
+              }
+            }}
+            disabled={!canClaimGift || !hasMinted || isClaimingGift || isGiftPending || isGiftConfirming}
+            title={!hasMinted ? 'Mint first to claim gifts!' : canClaimGift ? 'Claim Daily Gift!' : `Next claim in ${Math.floor(timeUntilNextClaim / 3600)}h`}
+          >
+            {isGiftPending || isGiftConfirming ? <Loader /> : <Gift size={20} />}
+          </button>
+        )}
         {isConnected ? (
           <div className={styles.modernAddress}>{shortenAddress(address as string)}</div>
         ) : (
@@ -354,6 +466,15 @@ export default function Home() {
       <main className={styles.content}>
         {isUserLoading ? (
           <Loader />
+        ) : !isInFarcaster ? (
+          <div className={styles.notFarcasterMessage}>
+            <h2>🎄 Oops!</h2>
+            <p>This app is only available on Farcaster.</p>
+            <p>Please open this in <strong>Farcaster</strong> or another Farcaster client to use Xmas PFP.</p>
+            <a href="https://farcaster.xyz" target="_blank" rel="noopener noreferrer" className={styles.modernButton}>
+              Open Farcaster
+            </a>
+          </div>
         ) : (
           <>
             {error && <p className={styles.errorText}>{error}</p>}
@@ -370,35 +491,34 @@ export default function Home() {
                     className={`${styles.imageFadeIn} ${isGenerating ? styles.heartbeat : ''}`}
                   />
                 </div>
-                <select
-                  className={styles.modernSelect}
-                  value={selectedReligion}
-                  onChange={(e) => setSelectedReligion(e.target.value)}
-                  disabled={!!generatedImageUrl}
-                >
-                  {religions.map(religion => (
-                    <option key={religion} value={religion}>{religion}</option>
-                  ))}
-                </select>
 
                 {generatedImageUrl ? (
-                  <div className={styles.buttonGroup}>
-                    <button
-                      className={`${styles.modernButton} ${styles['share-button-background']}`}
-                      onClick={handleShare}
-                      disabled={isSharing || isDownloading}
-                    >
-                      {isSharing ? 'Sharing...' : 'Share'}
-                    </button>
+                  (hasMinted || isConfirmed) ? (
+                    <div className={styles.buttonGroup}>
+                      <button
+                        className={`${styles.modernButton} ${styles['share-button-background']}`}
+                        onClick={handleShare}
+                        disabled={isSharing || isDownloading}
+                      >
+                        {isSharing ? 'Sharing...' : 'Share'}
+                      </button>
+                      <button
+                        className={styles.modernButton}
+                        onClick={handleDownload}
+                        disabled={isSharing || isDownloading}
+                      >
+                        {isDownloading ? 'Opening...' : 'Download'}
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       className={styles.modernButton}
-                      onClick={handleDownload}
-                      disabled={isSharing || isDownloading}
+                      onClick={handleMint}
+                      disabled={isPreparingMint || isMinting || isConfirming || !isConnected}
                     >
-                      {isDownloading ? 'Opening...' : 'Download'}
+                      {isPreparingMint ? <Loader /> : isMinting ? 'Minting...' : isConfirming ? 'Confirming...' : !isConnected ? 'Connect Wallet' : 'Mint (Free)'}
                     </button>
-
-                  </div>
+                  )
                 ) : (
                   <button
                     className={styles.modernButton}

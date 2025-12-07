@@ -51,11 +51,11 @@ export async function GET(request: Request) {
         }}
       >
         <img
-            src={imageDataUrl}
-            alt="Generated Creature"
-            width="285"
-            height="255" // Reduced height
-            style={{ borderRadius: '20px', marginTop: '20px' }} // Add top margin to center it better
+          src={imageDataUrl}
+          alt="Generated Creature"
+          width="285"
+          height="255" // Reduced height
+          style={{ borderRadius: '20px', marginTop: '20px' }} // Add top margin to center it better
         />
         <div
           style={{
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
             fontFamily: '"W95FA"',
           }}
         >
-          Religious Warplet: mwe founwd faithw
+          Xmas PFP: mwe founwd faithw
         </div>
       </div>
     ),
