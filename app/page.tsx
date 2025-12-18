@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
-import { useAppKit } from "@reown/appkit/react";
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useAccount, useSendTransaction, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { sdk } from '@farcaster/miniapp-sdk';
 import Loader from "./components/Loader";
@@ -13,13 +13,14 @@ import { xmasAbi } from "../lib/abi";
 import { parseEther } from "viem";
 import { useUser } from "./context/UserContext";
 import { dailyGiftAbi } from "../lib/dailyGiftAbi";
+import Countdown from "./components/Countdown";
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 const PAY_ADDRESS = process.env.NEXT_PUBLIC_BASEBUILDER_ALLOWED_ADDRESS as `0x${string}`;
 const DAILY_GIFT_CONTRACT = process.env.NEXT_PUBLIC_DAILY_GIFT_CONTRACT as `0x${string}`;
 
 export default function Home() {
-  const { open } = useAppKit();
+  const { openConnectModal } = useConnectModal();
   const { isConnected, address, isConnecting } = useAccount();
   const { data: hash, writeContract, isPending: isMinting, error: mintError, reset } = useWriteContract();
 
@@ -70,6 +71,7 @@ export default function Home() {
           });
           if (!response.ok) throw new Error('Failed to fetch gift status');
           const data = await response.json();
+          console.log('Gift status:', data);
           setCanClaimGift(data.canClaim);
           setTimeUntilNextClaim(data.timeUntilNextClaim);
         }, 3, 1000);
@@ -446,7 +448,15 @@ export default function Home() {
             disabled={!canClaimGift || !hasMinted || isClaimingGift || isGiftPending || isGiftConfirming}
             title={!hasMinted ? 'Mint first to claim gifts!' : canClaimGift ? 'Claim Daily Gift!' : `Next claim in ${Math.floor(timeUntilNextClaim / 3600)}h`}
           >
-            {isGiftPending || isGiftConfirming ? <Loader /> : <Gift size={20} />}
+            {isGiftPending || isGiftConfirming ? (
+              <Loader />
+            ) : canClaimGift ? (
+              <Gift size={20} />
+            ) : timeUntilNextClaim > 0 ? (
+              <Countdown seconds={timeUntilNextClaim} />
+            ) : (
+              <Gift size={20} />
+            )}
           </button>
         )}
         {isConnected ? (
@@ -455,7 +465,7 @@ export default function Home() {
           <button
             className={styles.modernButton}
             //@ts-ignore
-            onClick={open}
+            onClick={openConnectModal}
             disabled={isConnecting}
           >
             {isConnecting ? 'Connecting...' : 'Connect'}

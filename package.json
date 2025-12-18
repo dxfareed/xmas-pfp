@@ -25,8 +25,6 @@
     "@pinata/sdk": "^2.1.0",
     "@prisma/client": "^6.16.2",
     "@rainbow-me/rainbowkit": "^2.2.8",
-    "@reown/appkit": "^1.8.9",
-    "@reown/appkit-adapter-wagmi": "^1.8.9",
     "@tanstack/react-query": "^5.90.2",
     "@vercel/analytics": "^1.5.0",
     "@vercel/blob": "^2.0.0",

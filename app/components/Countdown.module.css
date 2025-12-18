@@ -1,0 +1,13 @@
+.countdown {
+  font-family: 'W95FA', monospace; /* Keep W95FA as requested by project guide, often works for neobrutalism */
+  font-size: 1.4em; /* Larger, more assertive text */
+  font-weight: bold;
+  color: #000000; /* Black text for high contrast */
+  background-color: #FFD700; /* A bold, vibrant color (e.g., strong yellow) */
+  border: 4px solid #000000; /* Thick black border */
+  padding: 8px 12px;
+  display: inline-block;
+  text-align: center;
+  min-width: 120px;
+  box-shadow: 6px 6px 0px #000000; /* A strong, offset shadow */
+}
