@@ -45,11 +45,19 @@ export async function GET(request: NextRequest) {
             functionName: "dailyAmount",
         });
 
+        // Get token address
+        const tokenAddress = await publicClient.readContract({
+            address: DAILY_GIFT_CONTRACT,
+            abi: dailyGiftAbi,
+            functionName: "token",
+        });
+
         return NextResponse.json({
             fid: fid,
             canClaim: canClaim,
             timeUntilNextClaim: Number(timeUntilNextClaim),
             dailyAmount: dailyAmount.toString(),
+            tokenAddress: tokenAddress,
         });
     } catch (error) {
         console.error("Error checking claim status:", error);

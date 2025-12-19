@@ -10,7 +10,7 @@ import { Gift } from 'lucide-react';
 
 import { withRetry } from "../lib/retry";
 import { xmasAbi } from "../lib/abi";
-import { parseEther } from "viem";
+import { formatEther, parseEther } from "viem";
 import { useUser } from "./context/UserContext";
 import { dailyGiftAbi } from "../lib/dailyGiftAbi";
 import Countdown from "./components/Countdown";
@@ -53,6 +53,8 @@ export default function Home() {
   const [isClaimingGift, setIsClaimingGift] = useState(false);
   const [giftClaimed, setGiftClaimed] = useState(false);
   const [timeUntilNextClaim, setTimeUntilNextClaim] = useState(0);
+  const [dailyAmount, setDailyAmount] = useState<string>('0');
+  const [tokenPriceData, setTokenPriceData] = useState<{ priceUsd: number; priceChange_h1: number } | null>(null);
 
   // Daily Gift Claim Transaction
   const { data: giftHash, writeContract: writeGiftContract, isPending: isGiftPending } = useWriteContract();
@@ -74,6 +76,20 @@ export default function Home() {
           console.log('Gift status:', data);
           setCanClaimGift(data.canClaim);
           setTimeUntilNextClaim(data.timeUntilNextClaim);
+          if (data.dailyAmount) {
+            setDailyAmount(data.dailyAmount);
+          }
+          if (data.tokenAddress) {
+            try {
+              const priceRes = await fetch(`/api/token-price?address=${data.tokenAddress}`);
+              if (priceRes.ok) {
+                const priceData = await priceRes.json();
+                setTokenPriceData(priceData);
+              }
+            } catch (e) {
+              console.error("Failed to fetch price", e);
+            }
+          }
         }, 3, 1000);
       } catch (error) {
         console.error('Error checking gift status after retries:', error);
@@ -90,12 +106,13 @@ export default function Home() {
 
       // Open compose cast popup
       const rootUrl = process.env.NEXT_PUBLIC_URL || 'https://your-app-url.com';
+      const formattedAmount = formatEther(BigInt(dailyAmount));
       sdk.actions.composeCast({
-        text: "I just claimed my daily xmas gift! 🎁🎄 Go claim yours on Xmas PFP",
+        text: `I just claimed ${formattedAmount} $GIFT! 🎁🎄 Go claim yours on Xmas PFP`,
         embeds: [rootUrl],
       });
     }
-  }, [isGiftConfirmed]);
+  }, [isGiftConfirmed, dailyAmount]);
 
   // Check if user has already generated an image
   useEffect(() => {
@@ -413,64 +430,20 @@ export default function Home() {
         </div>
       )}
       <header className={styles.headerWrapper}>
-        {/* Daily Gift Button - only show if user has minted */}
-        {isConnected && DAILY_GIFT_CONTRACT && hasMinted && (
-          <button
-            className={`${styles.giftButton} ${canClaimGift ? styles.giftAvailable : ''}`}
-            onClick={async () => {
-              if (!canClaimGift || !address || isClaimingGift || isGiftPending || isGiftConfirming) return;
-              setIsClaimingGift(true);
-              try {
-                const { token } = await sdk.quickAuth.getToken();
-                const signResponse = await fetch('/api/daily-gift/sign', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({ recipientAddress: address }),
-                });
-                if (!signResponse.ok) throw new Error('Failed to get signature');
-                const { signature, deadline } = await signResponse.json();
-                writeGiftContract({
-                  address: DAILY_GIFT_CONTRACT,
-                  abi: dailyGiftAbi,
-                  functionName: 'claim',
-                  args: [BigInt(fid!), address, BigInt(deadline), signature],
-                });
-              } catch (error) {
-                console.error('Error claiming gift:', error);
-                handleSetError('Failed to claim gift');
-              } finally {
-                setIsClaimingGift(false);
-              }
-            }}
-            disabled={!canClaimGift || !hasMinted || isClaimingGift || isGiftPending || isGiftConfirming}
-            title={!hasMinted ? 'Mint first to claim gifts!' : canClaimGift ? 'Claim Daily Gift!' : `Next claim in ${Math.floor(timeUntilNextClaim / 3600)}h`}
-          >
-            {isGiftPending || isGiftConfirming ? (
-              <Loader />
-            ) : canClaimGift ? (
-              <Gift size={20} />
-            ) : timeUntilNextClaim > 0 ? (
-              <Countdown seconds={timeUntilNextClaim} />
-            ) : (
-              <Gift size={20} />
-            )}
-          </button>
-        )}
-        {isConnected ? (
-          <div className={styles.modernAddress}>{shortenAddress(address as string)}</div>
-        ) : (
-          <button
-            className={styles.modernButton}
-            //@ts-ignore
-            onClick={openConnectModal}
-            disabled={isConnecting}
-          >
-            {isConnecting ? 'Connecting...' : 'Connect'}
-          </button>
-        )}
+        <div className={styles.topRightControls}>
+          {isConnected ? (
+            <div className={styles.modernAddress}>{shortenAddress(address as string)}</div>
+          ) : (
+            <button
+              className={styles.modernButton}
+              //@ts-ignore
+              onClick={openConnectModal}
+              disabled={isConnecting}
+            >
+              {isConnecting ? 'Connecting...' : 'Connect'}
+            </button>
+          )}
+        </div>
       </header>
 
       <main className={styles.content}>
@@ -486,84 +459,157 @@ export default function Home() {
             </a>
           </div>
         ) : (
-          <>
+          <div className={styles.mainContainer}>
             {error && <p className={styles.errorText}>{error}</p>}
 
-            {!error && (
-              <div className={styles.generator}>
-                <div className={styles.imageContainer}>
+            {/* Daily Gift Section - CENTERED HERO */}
+            {isConnected && DAILY_GIFT_CONTRACT && (
+              <div className={styles.giftSection}>
+                <h1 className={styles.giftTitle}>Daily Christmas Gift</h1>
+
+                {tokenPriceData && dailyAmount && (
+                  <div className={styles.priceTag} style={{ color: tokenPriceData.priceChange_h1 >= 0 ? '#165B33' : '#D42426' }}>
+                    <span>Gift Value: ${(parseFloat(formatEther(BigInt(dailyAmount))) * tokenPriceData.priceUsd).toFixed(4)}</span>
+                  </div>
+                )}
+
+                <p className={styles.giftSubtitle}>Claim your free tokens every 24 hours!</p>
+                <div className={styles.pfpPreview}>
                   <Image
-                    key={generatedImageUrl || pfpUrl || nftImageUrl}
-                    src={generatedImageUrl || pfpUrl || nftImageUrl || ''}
-                    alt="Creature"
-                    width={256}
-                    height={256}
-                    className={`${styles.imageFadeIn} ${isGenerating ? styles.heartbeat : ''}`}
+                    src={pfpUrl || '/icon.png'}
+                    alt="Your PFP"
+                    width={80}
+                    height={80}
+                    className={styles.pfpCircle}
                   />
                 </div>
 
-                {generatedImageUrl ? (
-                  (hasMinted || isConfirmed) ? (
-                    <div className={styles.buttonGroup}>
-                      <button
-                        className={`${styles.modernButton} ${styles['share-button-background']}`}
-                        onClick={handleShare}
-                        disabled={isSharing || isDownloading}
-                      >
-                        {isSharing ? 'Sharing...' : 'Share'}
-                      </button>
-                      <button
-                        className={styles.modernButton}
-                        onClick={handleDownload}
-                        disabled={isSharing || isDownloading}
-                      >
-                        {isDownloading ? 'Opening...' : 'Download'}
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      className={styles.modernButton}
-                      onClick={handleMint}
-                      disabled={isPreparingMint || isMinting || isConfirming || !isConnected}
-                    >
-                      {isPreparingMint ? <Loader /> : isMinting ? 'Minting...' : isConfirming ? 'Confirming...' : !isConnected ? 'Connect Wallet' : 'Mint (Free)'}
-                    </button>
-                  )
-                ) : (
-                  <button
-                    className={styles.modernButton}
-                    onClick={handleGenerateSmile}
-                    disabled={isGenerating || isPreparing}
-                  >
-                    {isGenerating ? (
+                <button
+                  className={`${styles.mainGiftButton} ${canClaimGift ? styles.giftAvailable : ''}`}
+                  onClick={async () => {
+                    if (!canClaimGift || !address || isClaimingGift || isGiftPending || isGiftConfirming) return;
+                    setIsClaimingGift(true);
+                    try {
+                      const { token } = await sdk.quickAuth.getToken();
+                      const signResponse = await fetch('/api/daily-gift/sign', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ recipientAddress: address }),
+                      });
+                      if (!signResponse.ok) throw new Error('Failed to get signature');
+                      const { signature, deadline } = await signResponse.json();
+                      writeGiftContract({
+                        address: DAILY_GIFT_CONTRACT,
+                        abi: dailyGiftAbi,
+                        functionName: 'claim',
+                        args: [BigInt(fid!), address, BigInt(deadline), signature],
+                      });
+                    } catch (error) {
+                      console.error('Error claiming gift:', error);
+                      handleSetError('Failed to claim gift');
+                    } finally {
+                      setIsClaimingGift(false);
+                    }
+                  }}
+                  disabled={!canClaimGift || isClaimingGift || isGiftPending || isGiftConfirming}
+                >
+                  {isGiftPending || isGiftConfirming ? (
+                    <>
                       <Loader />
-                    ) : isPreparing ? (
-                      "Preparing..."
-                    ) : (
-                      "Generate"
-                    )}
-                  </button>
-                )}
-                {isGenerating && <p className={styles.waitText}>please wait...</p>}
-
-                {isConfirming && <p>Waiting for confirmation...</p>}
-                {isConfirmed && (
-                  <div>
-                    <p>Minted Successfully!</p>
-                    <a
-                      href={`https://basescan.org/tx/${hash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.link}
-                    >
-                      View on Basescan
-                    </a>
-                  </div>
-                )}
+                      <span>Processing...</span>
+                    </>
+                  ) : canClaimGift ? (
+                    <>
+                      <Gift size={32} />
+                      <span>CLAIM GIFT</span>
+                    </>
+                  ) : (
+                    <div className={styles.countdownWrapper}>
+                      <span>Next Claim In:</span>
+                      <Countdown seconds={timeUntilNextClaim} />
+                    </div>
+                  )}
+                </button>
               </div>
             )}
 
-          </>
+
+            {/* Secondary: PFP Generator */}
+            <div className={styles.generatorSection}>
+              <h3>Xmas PFP Generator</h3>
+              <div className={styles.imageContainerSmall}>
+                <Image
+                  key={generatedImageUrl || pfpUrl || nftImageUrl}
+                  src={generatedImageUrl || pfpUrl || nftImageUrl || ''}
+                  alt="Creature"
+                  width={150}
+                  height={150}
+                  className={`${styles.imageFadeIn} ${isGenerating ? styles.heartbeat : ''}`}
+                />
+              </div>
+
+              {generatedImageUrl ? (
+                (hasMinted || isConfirmed) ? (
+                  <div className={styles.buttonGroup}>
+                    <button
+                      className={`${styles.modernButton} ${styles['share-button-background']}`}
+                      onClick={handleShare}
+                      disabled={isSharing || isDownloading}
+                    >
+                      {isSharing ? 'Sharing...' : 'Share'}
+                    </button>
+                    <button
+                      className={styles.modernButton}
+                      onClick={handleDownload}
+                      disabled={isSharing || isDownloading}
+                    >
+                      {isDownloading ? 'Opening...' : 'Download'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className={styles.modernButton}
+                    onClick={handleMint}
+                    disabled={isPreparingMint || isMinting || isConfirming || !isConnected}
+                  >
+                    {isPreparingMint ? <Loader /> : isMinting ? 'Minting...' : isConfirming ? 'Confirming...' : !isConnected ? 'Connect Wallet' : 'Mint (Free)'}
+                  </button>
+                )
+              ) : (
+                <button
+                  className={styles.modernButton}
+                  onClick={handleGenerateSmile}
+                  disabled={isGenerating || isPreparing}
+                >
+                  {isGenerating ? (
+                    <Loader />
+                  ) : isPreparing ? (
+                    "Preparing..."
+                  ) : (
+                    "Generate New PFP"
+                  )}
+                </button>
+              )}
+
+              {isConfirmed && (
+                <div className={styles.successMessage}>
+                  <p>Minted Successfully!</p>
+                  <a
+                    href={`https://basescan.org/tx/${hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.link}
+                  >
+                    View on Basescan
+                  </a>
+                </div>
+              )}
+            </div>
+
+          </div>
         )}
       </main>
     </div>

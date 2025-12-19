@@ -17,28 +17,172 @@
   padding: 1.5rem;
 }
 
+.topRightControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  /* changed from center to flex-start */
   padding-bottom: 5vh;
+  padding-top: 2rem;
 }
 
-.modernButton {
+.mainContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+  width: 100%;
+  max-width: 600px;
+  padding: 1rem;
+}
+
+/* Daily Gift Hero Section */
+.giftSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #fff;
+  border: 4px solid #000;
+  box-shadow: 8px 8px 0px #165B33;
+  padding: 2.5rem;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.giftTitle {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: #D42426;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.giftSubtitle {
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.pfpPreview {
+  margin-bottom: 2rem;
+  padding: 5px;
+  border: 3px solid #000;
+  border-radius: 50%;
+  background: #FFD700;
+  /* Gold ring */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pfpCircle {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.mainGiftButton {
+  background-color: #165B33;
+  color: #fff;
+  border: 3px solid #000;
+  padding: 1.2rem 3rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 6px 6px 0px #000;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.1s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.mainGiftButton:hover:not(:disabled) {
+  transform: translate(-3px, -3px);
+  box-shadow: 9px 9px 0px #000;
+  background-color: #1e7a44;
+}
+
+.mainGiftButton:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: 3px 3px 0px #000;
+}
+
+.mainGiftButton:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+  box-shadow: 3px 3px 0px #000;
+}
+
+.giftAvailable {
   background-color: #D42426;
-  /* Christmas Red */
+  animation: giftPulse 1.5s ease-in-out infinite;
+}
+
+.countdownWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+
+/* Generator Section (Secondary) */
+.generatorSection {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  border: 3px solid #000;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.generatorSection h3 {
+  text-transform: uppercase;
+  border-bottom: 2px solid #000;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.imageContainerSmall {
+  width: 150px;
+  height: 150px;
+  border: 3px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: #e0e0e0;
+}
+
+
+/* EXISTING STYLES REUSED / MODIFIED BELOW */
+
+.modernButton {
+  background-color: #fff;
+  /* Changed to white by default for secondary actions */
+  color: #000;
   border: 3px solid #000;
   border-radius: 0;
-  /* Sharp corners */
-  color: #fff;
-  padding: 12px 24px;
-  font-size: 1rem;
+  padding: 10px 20px;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 4px 4px 0px #165B33;
-  /* Christmas Green Shadow */
-  /* Hard shadow */
   transition: all 0.1s ease-in-out;
   text-transform: uppercase;
 }
@@ -46,7 +190,7 @@
 .modernButton:hover:not(:disabled) {
   transform: translate(-2px, -2px);
   box-shadow: 6px 6px 0px #165B33;
-  background-color: #ff4d4d;
+  background-color: #f0f0f0;
 }
 
 .modernButton:active:not(:disabled) {
@@ -63,39 +207,13 @@
 
 .modernAddress {
   background-color: #165B33;
-  /* Christmas Green */
   border: 3px solid #000;
   border-radius: 0;
   color: #fff;
-  padding: 10px 20px;
-  font-size: 1rem;
+  padding: 8px 16px;
+  font-size: 0.9rem;
   font-weight: 700;
-  box-shadow: 4px 4px 0px #D42426;
-  /* Red Shadow */
-}
-
-.generator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  background-color: #fff;
-  padding: 2rem;
-  border: 3px solid #000;
-  box-shadow: 8px 8px 0px #D42426;
-  /* Red Shadow */
-}
-
-.imageContainer {
-  width: 256px;
-  height: 256px;
-  border: 3px solid #000;
-  border-radius: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background-color: #e0e0e0;
+  box-shadow: 3px 3px 0px #D42426;
 }
 
 .errorText {
@@ -107,19 +225,8 @@
   font-weight: 700;
   box-shadow: 4px 4px 0px #000;
   margin-top: 1rem;
-}
-
-.modernSelect {
-  background-color: #fff;
-  border: 3px solid #000;
-  border-radius: 0;
-  color: #000;
-  padding: 10px 20px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 4px 4px 0px #165B33;
   width: 100%;
+  text-align: center;
 }
 
 .rejectedOverlay {
@@ -129,7 +236,6 @@
   width: 100vw;
   height: 100vh;
   background-color: rgba(212, 36, 38, 0.95);
-  /* Red overlay */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -142,6 +248,19 @@
   border: 5px solid #000;
 }
 
+.priceTag {
+  background: #fff;
+  border: 3px solid #000;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  box-shadow: 4px 4px 0px #000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+}
+
 .buttonGroup {
   display: flex;
   gap: 1rem;
@@ -152,14 +271,14 @@
 
 .imageFadeIn {
   animation: fadeIn 1.8s ease-in-out forwards;
-  object-fit: contain;
+  object-fit: cover;
+  /* changed from contain to cover for PFP style */
   width: 100%;
   height: 100%;
 }
 
 .share-button-background {
   background-color: #FFD700;
-  /* Gold */
   color: #000;
   box-shadow: 4px 4px 0px #000;
 }
@@ -172,13 +291,6 @@
   to {
     opacity: 1;
   }
-}
-
-.waitText {
-  color: #165B33;
-  font-weight: 700;
-  margin-top: 1rem;
-  text-transform: uppercase;
 }
 
 @keyframes heartbeat {
@@ -230,16 +342,6 @@
   z-index: 10;
 }
 
-.muteButton:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0px #000;
-}
-
-.muteButton:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px #000;
-}
-
 .notFarcasterMessage {
   display: flex;
   flex-direction: column;
@@ -266,52 +368,16 @@
   line-height: 1.5;
 }
 
-.notFarcasterMessage a {
-  margin-top: 1rem;
-  text-decoration: none;
-}
-
-.giftButton {
-  background-color: #165B33;
-  border: 3px solid #000;
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 3px 3px 0px #000;
-  transition: all 0.2s ease;
-  color: #fff;
-  margin-right: 1rem;
-}
-
-.giftButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.giftButton:hover:not(:disabled) {
-  transform: translate(-2px, -2px);
-  box-shadow: 5px 5px 0px #000;
-}
-
-.giftAvailable {
-  background-color: #D42426;
-  animation: giftPulse 1.5s ease-in-out infinite;
-}
-
 @keyframes giftPulse {
 
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 3px 3px 0px #000;
+    box-shadow: 6px 6px 0px #000;
   }
 
   50% {
-    transform: scale(1.1);
-    box-shadow: 5px 5px 0px #000;
+    transform: scale(1.02);
+    box-shadow: 9px 9px 0px #000;
   }
 }
