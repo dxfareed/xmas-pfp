@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         });
         const neynarScore = user.users[0]?.score;
 
-        if (neynarScore !== undefined && neynarScore <= 0.2) {
+        if (neynarScore !== undefined && neynarScore <= 0.45) {
             return NextResponse.json(
                 { message: "Neynar score too low to claim." },
                 { status: 403 }
