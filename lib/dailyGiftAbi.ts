@@ -44,8 +44,17 @@ export const dailyGiftAbi = [
         "type": "event"
     },
     {
+        "anonymous": false,
+        "inputs": [
+            { "indexed": true, "internalType": "address", "name": "oldToken", "type": "address" },
+            { "indexed": true, "internalType": "address", "name": "newToken", "type": "address" }
+        ],
+        "name": "TokenUpdated",
+        "type": "event"
+    },
+    {
         "inputs": [],
-        "name": "CLAIM_INTERVAL",
+        "name": "claimInterval",
         "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
         "stateMutability": "view",
         "type": "function"
@@ -105,8 +114,22 @@ export const dailyGiftAbi = [
         "type": "function"
     },
     {
+        "inputs": [{ "internalType": "uint256", "name": "_interval", "type": "uint256" }],
+        "name": "setClaimInterval",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
         "inputs": [{ "internalType": "address", "name": "_signer", "type": "address" }],
         "name": "setSigner",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{ "internalType": "address", "name": "_token", "type": "address" }],
+        "name": "setToken",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"

@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     });
     const neynarScore = user.users[0]?.score;
 
-    if (neynarScore !== undefined && neynarScore <= 0.3) {
+    if (neynarScore !== undefined && neynarScore <= 0.23) {
       return NextResponse.json(
         { message: "Neynar score too low." },
         { status: 403 }

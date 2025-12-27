@@ -16,10 +16,10 @@ contract DailyGift is Ownable, ReentrancyGuard {
     using MessageHashUtils for bytes32;
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable token;
+    IERC20 public token;
     address public signer;
     uint256 public dailyAmount;
-    uint256 public constant CLAIM_INTERVAL = 24 hours;
+    uint256 public claimInterval;
     uint256 public constant SIGNATURE_VALIDITY = 5 minutes;
 
     // FID => last claim timestamp
@@ -31,6 +31,8 @@ contract DailyGift is Ownable, ReentrancyGuard {
     event Claimed(uint256 indexed fid, address indexed recipient, uint256 amount);
     event SignerUpdated(address indexed oldSigner, address indexed newSigner);
     event DailyAmountUpdated(uint256 oldAmount, uint256 newAmount);
+    event ClaimIntervalUpdated(uint256 oldInterval, uint256 newInterval);
+    event TokenUpdated(address indexed oldToken, address indexed newToken);
     event EmergencyWithdraw(address indexed token, uint256 amount);
 
     error InvalidSigner();
@@ -55,6 +57,7 @@ contract DailyGift is Ownable, ReentrancyGuard {
         token = IERC20(_token);
         signer = _signer;
         dailyAmount = _dailyAmount;
+        claimInterval = 6 hours;
     }
 
     function claim(
@@ -85,8 +88,8 @@ contract DailyGift is Ownable, ReentrancyGuard {
         usedSignatures[messageHash] = true;
 
         uint256 lastClaimTime = lastClaim[fid];
-        if (block.timestamp < lastClaimTime + CLAIM_INTERVAL) {
-            revert ClaimTooSoon(lastClaimTime + CLAIM_INTERVAL - block.timestamp);
+        if (block.timestamp < lastClaimTime + claimInterval) {
+            revert ClaimTooSoon(lastClaimTime + claimInterval - block.timestamp);
         }
 
         lastClaim[fid] = block.timestamp;
@@ -97,11 +100,11 @@ contract DailyGift is Ownable, ReentrancyGuard {
     }
 
     function canClaim(uint256 fid) external view returns (bool) {
-        return block.timestamp >= lastClaim[fid] + CLAIM_INTERVAL;
+        return block.timestamp >= lastClaim[fid] + claimInterval;
     }
 
     function timeUntilNextClaim(uint256 fid) external view returns (uint256) {
-        uint256 nextClaimTime = lastClaim[fid] + CLAIM_INTERVAL;
+        uint256 nextClaimTime = lastClaim[fid] + claimInterval;
         if (block.timestamp >= nextClaimTime) return 0;
         return nextClaimTime - block.timestamp;
     }
@@ -122,6 +125,20 @@ contract DailyGift is Ownable, ReentrancyGuard {
         uint256 oldAmount = dailyAmount;
         dailyAmount = _amount;
         emit DailyAmountUpdated(oldAmount, _amount);
+    }
+
+    function setClaimInterval(uint256 _interval) external onlyOwner {
+        if (_interval == 0) revert ZeroAmount();
+        uint256 oldInterval = claimInterval;
+        claimInterval = _interval;
+        emit ClaimIntervalUpdated(oldInterval, _interval);
+    }
+
+    function setToken(address _token) external onlyOwner {
+        if (_token == address(0)) revert ZeroAddress();
+        address oldToken = address(token);
+        token = IERC20(_token);
+        emit TokenUpdated(oldToken, _token);
     }
 
     function withdrawTokens(uint256 amount) external onlyOwner {

@@ -3,6 +3,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { privateKeyToAccount } from "viem/accounts";
 import { keccak256, encodePacked } from "viem";
 import { base } from "viem/chains";
+import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk";
 
 // Signer private key - MUST be the same address set in the DailyGift contract
 const SIGNER_PRIVATE_KEY = process.env.DAILY_GIFT_SIGNER_PRIVATE_KEY as `0x${string}`;
@@ -32,6 +33,31 @@ export async function POST(request: NextRequest) {
         if (!DAILY_GIFT_CONTRACT) {
             console.error("NEXT_PUBLIC_DAILY_GIFT_CONTRACT not set");
             return NextResponse.json({ message: "Server configuration error" }, { status: 500 });
+        }
+
+        // Verify Neynar Score
+        const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY;
+        if (!NEYNAR_API_KEY) {
+            console.error("NEYNAR_API_KEY not set");
+            return NextResponse.json({ message: "Server configuration error" }, { status: 500 });
+        }
+
+        const neynarClient = new NeynarAPIClient(
+            new Configuration({
+                apiKey: NEYNAR_API_KEY,
+            })
+        );
+
+        const user = await neynarClient.fetchBulkUsers({
+            fids: [Number(fid)],
+        });
+        const neynarScore = user.users[0]?.score;
+
+        if (neynarScore !== undefined && neynarScore <= 0.2) {
+            return NextResponse.json(
+                { message: "Neynar score too low to claim." },
+                { status: 403 }
+            );
         }
 
         // Create the signer account

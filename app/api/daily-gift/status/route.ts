@@ -45,6 +45,13 @@ export async function GET(request: NextRequest) {
             functionName: "dailyAmount",
         });
 
+        // Get claim interval
+        const claimInterval = await publicClient.readContract({
+            address: DAILY_GIFT_CONTRACT,
+            abi: dailyGiftAbi,
+            functionName: "claimInterval",
+        });
+
         // Get token address
         const tokenAddress = await publicClient.readContract({
             address: DAILY_GIFT_CONTRACT,
@@ -58,6 +65,7 @@ export async function GET(request: NextRequest) {
             timeUntilNextClaim: Number(timeUntilNextClaim),
             dailyAmount: dailyAmount.toString(),
             tokenAddress: tokenAddress,
+            claimInterval: Number(claimInterval),
         });
     } catch (error) {
         console.error("Error checking claim status:", error);

@@ -50,10 +50,12 @@ export default function Home() {
 
   // Daily Gift State
   const [canClaimGift, setCanClaimGift] = useState(false);
+  const [isCheckingGiftStatus, setIsCheckingGiftStatus] = useState(false);
   const [isClaimingGift, setIsClaimingGift] = useState(false);
   const [giftClaimed, setGiftClaimed] = useState(false);
   const [timeUntilNextClaim, setTimeUntilNextClaim] = useState(0);
   const [dailyAmount, setDailyAmount] = useState<string>('0');
+  const [claimInterval, setClaimInterval] = useState<number>(24);
   const [tokenPriceData, setTokenPriceData] = useState<{ priceUsd: number; priceChange_h1: number } | null>(null);
 
   // Daily Gift Claim Transaction
@@ -64,6 +66,7 @@ export default function Home() {
   useEffect(() => {
     const checkGiftStatus = async () => {
       if (!fid) return;
+      setIsCheckingGiftStatus(true);
       try {
         await withRetry(async () => {
           const { token } = await sdk.quickAuth.getToken();
@@ -79,6 +82,9 @@ export default function Home() {
           if (data.dailyAmount) {
             setDailyAmount(data.dailyAmount);
           }
+          if (data.claimInterval) {
+            setClaimInterval(data.claimInterval / 3600); // Convert seconds to hours
+          }
           if (data.tokenAddress) {
             try {
               const priceRes = await fetch(`/api/token-price?address=${data.tokenAddress}`);
@@ -93,6 +99,8 @@ export default function Home() {
         }, 3, 1000);
       } catch (error) {
         console.error('Error checking gift status after retries:', error);
+      } finally {
+        setIsCheckingGiftStatus(false);
       }
     };
     checkGiftStatus();
@@ -473,7 +481,7 @@ export default function Home() {
                   </div>
                 )}
 
-                <p className={styles.giftSubtitle}>Claim your free tokens every 24 hours!</p>
+                <p className={styles.giftSubtitle}>Claim your free tokens every {claimInterval} hours!</p>
                 <div className={styles.pfpPreview}>
                   <Image
                     src={pfpUrl || '/icon.png'}
@@ -514,9 +522,14 @@ export default function Home() {
                       setIsClaimingGift(false);
                     }
                   }}
-                  disabled={!canClaimGift || isClaimingGift || isGiftPending || isGiftConfirming}
+                  disabled={!canClaimGift || isClaimingGift || isGiftPending || isGiftConfirming || isCheckingGiftStatus}
                 >
-                  {isGiftPending || isGiftConfirming ? (
+                  {isCheckingGiftStatus ? (
+                    <>
+                      <Loader />
+                      <span>Checking...</span>
+                    </>
+                  ) : isGiftPending || isGiftConfirming ? (
                     <>
                       <Loader />
                       <span>Processing...</span>
