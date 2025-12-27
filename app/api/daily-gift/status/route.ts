@@ -59,6 +59,15 @@ export async function GET(request: NextRequest) {
             functionName: "token",
         });
 
+        // Check contract balance
+        const contractBalance = await publicClient.readContract({
+            address: DAILY_GIFT_CONTRACT,
+            abi: dailyGiftAbi,
+            functionName: "getBalance",
+        });
+
+        const hasSufficientBalance = BigInt(contractBalance as bigint) >= BigInt(dailyAmount as bigint);
+
         return NextResponse.json({
             fid: fid,
             canClaim: canClaim,
@@ -66,6 +75,7 @@ export async function GET(request: NextRequest) {
             dailyAmount: dailyAmount.toString(),
             tokenAddress: tokenAddress,
             claimInterval: Number(claimInterval),
+            hasSufficientBalance: hasSufficientBalance,
         });
     } catch (error) {
         console.error("Error checking claim status:", error);

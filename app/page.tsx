@@ -56,6 +56,7 @@ export default function Home() {
   const [timeUntilNextClaim, setTimeUntilNextClaim] = useState(0);
   const [dailyAmount, setDailyAmount] = useState<string>('0');
   const [claimInterval, setClaimInterval] = useState<number>(24);
+  const [hasSufficientBalance, setHasSufficientBalance] = useState(true);
   const [tokenPriceData, setTokenPriceData] = useState<{ priceUsd: number; priceChange_h1: number } | null>(null);
 
   // Daily Gift Claim Transaction
@@ -84,6 +85,9 @@ export default function Home() {
           }
           if (data.claimInterval) {
             setClaimInterval(data.claimInterval / 3600); // Convert seconds to hours
+          }
+          if (data.hasSufficientBalance !== undefined) {
+            setHasSufficientBalance(data.hasSufficientBalance);
           }
           if (data.tokenAddress) {
             try {
@@ -522,13 +526,15 @@ export default function Home() {
                       setIsClaimingGift(false);
                     }
                   }}
-                  disabled={!canClaimGift || isClaimingGift || isGiftPending || isGiftConfirming || isCheckingGiftStatus}
+                  disabled={!canClaimGift || isClaimingGift || isGiftPending || isGiftConfirming || isCheckingGiftStatus || !hasSufficientBalance}
                 >
                   {isCheckingGiftStatus ? (
                     <>
                       <Loader />
                       <span>Checking...</span>
                     </>
+                  ) : !hasSufficientBalance ? (
+                    <span>Sold Out (Contact Dev)</span>
                   ) : isGiftPending || isGiftConfirming ? (
                     <>
                       <Loader />
