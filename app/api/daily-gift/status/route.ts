@@ -5,10 +5,11 @@ import { base } from "viem/chains";
 import { dailyGiftAbi } from "@/lib/dailyGiftAbi";
 
 const DAILY_GIFT_CONTRACT = process.env.NEXT_PUBLIC_DAILY_GIFT_CONTRACT as `0x${string}`;
+const RPC_URL = process.env.NEXT_PUBLIC_HTTPS_IN_URL || 'https://mainnet.base.org';
 
 const publicClient = createPublicClient({
     chain: base,
-    transport: http(),
+    transport: http(RPC_URL),
 });
 
 export async function GET(request: NextRequest) {
@@ -18,17 +19,23 @@ export async function GET(request: NextRequest) {
     }
 
     try {
+        console.log("Checking gift status for FID:", fid);
+        console.log("Contract Address:", DAILY_GIFT_CONTRACT);
+
         if (!DAILY_GIFT_CONTRACT) {
+            console.error("DAILY_GIFT_CONTRACT is not defined");
             return NextResponse.json({ message: "Contract not configured" }, { status: 500 });
         }
 
         // Check if user can claim
+        console.log("Reading canClaim...");
         const canClaim = await publicClient.readContract({
             address: DAILY_GIFT_CONTRACT,
             abi: dailyGiftAbi,
             functionName: "canClaim",
             args: [BigInt(fid)],
         });
+        console.log("canClaim result:", canClaim);
 
         // Get time until next claim
         const timeUntilNextClaim = await publicClient.readContract({
@@ -77,10 +84,10 @@ export async function GET(request: NextRequest) {
             claimInterval: Number(claimInterval),
             hasSufficientBalance: hasSufficientBalance,
         });
-    } catch (error) {
-        console.error("Error checking claim status:", error);
+    } catch (error: any) {
+        console.error("Error checking claim status. Full error:", error);
         return NextResponse.json(
-            { message: "Failed to check claim status" },
+            { message: "Failed to check claim status", error: error.message || String(error) },
             { status: 500 }
         );
     }

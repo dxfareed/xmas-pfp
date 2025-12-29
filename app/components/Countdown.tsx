@@ -5,9 +5,10 @@ import styles from './Countdown.module.css'; // Import the CSS module
 
 interface CountdownProps {
   seconds: number;
+  onComplete?: () => void;
 }
 
-const Countdown = ({ seconds: initialSeconds }: CountdownProps) => {
+const Countdown = ({ seconds: initialSeconds, onComplete }: CountdownProps) => {
   const [remainingSeconds, setRemainingSeconds] = useState(initialSeconds);
 
   useEffect(() => {
@@ -23,8 +24,9 @@ const Countdown = ({ seconds: initialSeconds }: CountdownProps) => {
 
     const interval = setInterval(() => {
       setRemainingSeconds(prevSeconds => {
-        if (prevSeconds <= 1) { // If it's 1 or less, it will be 0 on next tick
+        if (prevSeconds <= 1) {
           clearInterval(interval);
+          if (onComplete) onComplete();
           return 0;
         }
         return prevSeconds - 1;
@@ -32,7 +34,7 @@ const Countdown = ({ seconds: initialSeconds }: CountdownProps) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [initialSeconds]); // Re-run effect only when initialSeconds changes
+  }, [initialSeconds, onComplete]);
 
   // Calculate hours, minutes, seconds from remainingSeconds
   const hours = Math.floor(remainingSeconds / 3600);

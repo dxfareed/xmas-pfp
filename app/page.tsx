@@ -75,7 +75,10 @@ export default function Home() {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` },
           });
-          if (!response.ok) throw new Error('Failed to fetch gift status');
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || errorData.error || `Failed to fetch gift status: ${response.statusText}`);
+          }
           const data = await response.json();
           console.log('Gift status:', data);
           setCanClaimGift(data.canClaim);
@@ -511,7 +514,12 @@ export default function Home() {
                         },
                         body: JSON.stringify({ recipientAddress: address }),
                       });
-                      if (!signResponse.ok) throw new Error('Failed to get signature');
+
+                      if (!signResponse.ok) {
+                        const errorData = await signResponse.json().catch(() => ({}));
+                        throw new Error(errorData.message || 'Failed to get signature');
+                      }
+
                       const { signature, deadline } = await signResponse.json();
                       writeGiftContract({
                         address: DAILY_GIFT_CONTRACT,
@@ -519,9 +527,9 @@ export default function Home() {
                         functionName: 'claim',
                         args: [BigInt(fid!), address, BigInt(deadline), signature],
                       });
-                    } catch (error) {
+                    } catch (error: any) {
                       console.error('Error claiming gift:', error);
-                      handleSetError('Failed to claim gift');
+                      handleSetError(error.message || 'Failed to claim gift');
                     } finally {
                       setIsClaimingGift(false);
                     }
@@ -548,7 +556,10 @@ export default function Home() {
                   ) : (
                     <div className={styles.countdownWrapper}>
                       <span>Next Claim In:</span>
-                      <Countdown seconds={timeUntilNextClaim} />
+                      <Countdown
+                        seconds={timeUntilNextClaim}
+                        onComplete={() => setCanClaimGift(true)}
+                      />
                     </div>
                   )}
                 </button>
