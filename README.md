@@ -2,6 +2,11 @@
 
 A Farcaster Mini App that allows users to generate festive AI-powered PFPs, mint them as NFTs on Base, and claim daily ERC20 token rewards.
 
+## ⚡ Performance
+- **Server Side Rendering (SSR)**: Enabled for instant page loads, removing hydration delays.
+- **Optimized Fonts**: Uses `next/font/local` for zero layout shift and fast rendering.
+- **Efficient Builds**: Clean dependencies with no unused heavy libraries.
+
 ## 🌟 Key Features
 
 ### 1. **AI PFP Generator**
