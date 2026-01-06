@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import localFont from 'next/font/local';
 import { minikitConfig } from "@/minikit.config";
 import { RootProvider } from "./rootProvider";
 import "./globals.css";
-import fontStyles from './fonts.module.css';
 //import { ErudaLoader } from "./components/ErudaLoader";
 import { Analytics } from "@vercel/analytics/next"; // Import Analytics
 
@@ -15,7 +15,7 @@ export const viewport: Viewport = {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  
+
   return {
     title: minikitConfig.frame.name,
     description: minikitConfig.frame.description,
@@ -35,6 +35,22 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+const w95fa = localFont({
+  src: [
+    {
+      path: '../public/fonts/W95FA/w95fa.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/W95FA/w95fa.woff',
+      weight: '400',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-w95fa'
+});
+
 export default function RootLayout({
   children,
 }: {
@@ -43,7 +59,7 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body className={fontStyles.w95fa}>
+      <body className={w95fa.className}>
         <RootProvider>{children}</RootProvider>
         <Analytics />
       </body>

@@ -12,13 +12,9 @@ import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 const queryClient = new QueryClient();
 
 export function RootProvider({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    setMounted(true)
     sdk.actions.ready({ disableNativeGestures: true });
   }, []);
-
-  // sdk.actions.addMiniApp()
 
   return (
     <WagmiProvider config={config}>
@@ -26,7 +22,7 @@ export function RootProvider({ children }: { children: ReactNode }) {
         <MiniAppProvider>
           <RainbowKitProvider theme={darkTheme()}>
             <UserProvider>
-              {mounted && children}
+              {children}
             </UserProvider>
           </RainbowKitProvider>
         </MiniAppProvider>
