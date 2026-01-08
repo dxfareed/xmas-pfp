@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, erc20Abi } from "viem";
 import { base } from "viem/chains";
 import { dailyGiftAbi } from "@/lib/dailyGiftAbi";
 
@@ -73,6 +73,31 @@ export async function GET(request: NextRequest) {
             functionName: "getBalance",
         });
 
+        // Get Token Details (Symbol & Decimals)
+        let tokenSymbol = 'TOKEN';
+        let tokenDecimals = 18;
+
+        try {
+            if (tokenAddress) {
+                const [symbol, decimals] = await Promise.all([
+                    publicClient.readContract({
+                        address: tokenAddress,
+                        abi: erc20Abi,
+                        functionName: 'symbol'
+                    }),
+                    publicClient.readContract({
+                        address: tokenAddress,
+                        abi: erc20Abi,
+                        functionName: 'decimals'
+                    })
+                ]);
+                tokenSymbol = symbol;
+                tokenDecimals = decimals;
+            }
+        } catch (e) {
+            console.error("Failed to fetch token details:", e);
+        }
+
         const hasSufficientBalance = BigInt(contractBalance as bigint) >= BigInt(dailyAmount as bigint);
 
         return NextResponse.json({
@@ -81,6 +106,8 @@ export async function GET(request: NextRequest) {
             timeUntilNextClaim: Number(timeUntilNextClaim),
             dailyAmount: dailyAmount.toString(),
             tokenAddress: tokenAddress,
+            tokenSymbol: tokenSymbol,
+            tokenDecimals: tokenDecimals,
             claimInterval: Number(claimInterval),
             hasSufficientBalance: hasSufficientBalance,
         });

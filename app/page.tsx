@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { useAccount, useSendTransaction, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWalletClient } from 'wagmi';
+import { useSendCalls, useCallsStatus } from 'wagmi/experimental';
 import { sdk } from '@farcaster/miniapp-sdk';
 import Loader from "./components/Loader";
 import { Gift } from 'lucide-react';
@@ -22,11 +23,18 @@ const DAILY_GIFT_CONTRACT = process.env.NEXT_PUBLIC_DAILY_GIFT_CONTRACT as `0x${
 export default function Home() {
   const { openConnectModal } = useConnectModal();
   const { isConnected, address, isConnecting } = useAccount();
-  const { data: hash, writeContract, isPending: isMinting, error: mintError, reset } = useWriteContract();
+
+  // EIP-5792 Hooks
+  const { sendCalls, data: mintCallId, error: mintError, isPending: isMinting, reset: resetMint } = useSendCalls();
+  const { data: mintStatus, isLoading: isConfirming, isSuccess: isConfirmed } = useCallsStatus({
+    id: mintCallId?.id as string,
+    query: {
+      enabled: !!mintCallId,
+      refetchInterval: (data) => data.state.data?.status === "success" ? false : 1000
+    }
+  });
 
   const { fid, pfpUrl, isLoading: isUserLoading, isInFarcaster } = useUser();
-
-
 
   const [nftImageUrl, setNftImageUrl] = useState<string | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
@@ -58,10 +66,22 @@ export default function Home() {
   const [claimInterval, setClaimInterval] = useState<number>(24);
   const [hasSufficientBalance, setHasSufficientBalance] = useState(true);
   const [tokenPriceData, setTokenPriceData] = useState<{ priceUsd: number; priceChange_h1: number } | null>(null);
+  const [tokenSymbol, setTokenSymbol] = useState<string>('');
+  const [tokenDecimals, setTokenDecimals] = useState<number>(18);
+  const [tokenAddress, setTokenAddress] = useState<string>('');
 
-  // Daily Gift Claim Transaction
-  const { data: giftHash, writeContract: writeGiftContract, isPending: isGiftPending } = useWriteContract();
-  const { isLoading: isGiftConfirming, isSuccess: isGiftConfirmed } = useWaitForTransactionReceipt({ hash: giftHash });
+  const { data: walletClient } = useWalletClient();
+
+  // Daily Gift Claim Transaction (EIP-5792)
+  const { sendCalls: sendGiftCalls, data: giftCallId, error: giftError, isPending: isGiftPending, reset: resetGift } = useSendCalls();
+  const { isLoading: isGiftConfirming, isSuccess: isGiftConfirmed } = useCallsStatus({
+    id: giftCallId?.id as string,
+    query: {
+      enabled: !!giftCallId,
+      refetchInterval: (data) => data.state.data?.status === "success" ? false : 1000
+    }
+  });
+
 
   // Check daily gift status
   useEffect(() => {
@@ -93,6 +113,10 @@ export default function Home() {
             setHasSufficientBalance(data.hasSufficientBalance);
           }
           if (data.tokenAddress) {
+            setTokenAddress(data.tokenAddress);
+            if (data.tokenSymbol) setTokenSymbol(data.tokenSymbol);
+            if (data.tokenDecimals) setTokenDecimals(data.tokenDecimals);
+
             try {
               const priceRes = await fetch(`/api/token-price?address=${data.tokenAddress}`);
               if (priceRes.ok) {
@@ -183,16 +207,6 @@ export default function Home() {
   };
 
 
-
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash,
-    })
-
-
-
-
-
   const generateImage = async () => {
     const sourceImage = pfpUrl || nftImageUrl;
     if (!sourceImage) return;
@@ -252,7 +266,6 @@ export default function Home() {
   };
 
 
-
   const handleGenerateSmile = async () => {
     if (!pfpUrl && !nftImageUrl) return;
 
@@ -277,15 +290,34 @@ export default function Home() {
         handleSetError(`Minting failed: ${mintError.message}`);
       }
     }
-  }, [mintError]);
+    // Also handle gift errors
+    if (giftError) {
+      console.error("A gift claim error occurred:", giftError);
+      if (giftError.message.includes('User rejected the request')) {
+        setUserRejectedError(true);
+        setTimeout(() => setUserRejectedError(false), 5000);
+      } else {
+        handleSetError(`Claim failed: ${giftError.message}`);
+      }
+    }
+  }, [mintError, giftError]);
 
+
+  // Note: We use mintCallId as the "hash" equivalent for EIP-5792 logging/tracking if needed,
+  // but strictly speaking it's a batch ID, not a tx hash until confirmed.
+  // The 'mintStatus' object might contain the receipts once confirmed.
 
   useEffect(() => {
-    if (isConfirmed && hash && generatedImageUrl) {
+    // Check for success via useCallsStatus
+    if (isConfirmed && generatedImageUrl) {
       const saveMintToDb = async () => {
         setIsSavingToGallery(true);
         try {
           const { token } = await sdk.quickAuth.getToken();
+          // Ideally we would want the actual TX Hash here.
+          // With useCallsStatus, we get `data.receipts` array.
+          const txHash = mintStatus?.receipts?.[0]?.transactionHash || mintCallId?.id;
+
           const response = await fetch('/api/nft/mint', {
             method: 'POST',
             headers: {
@@ -294,7 +326,7 @@ export default function Home() {
             },
             body: JSON.stringify({
               imageData: generatedImageUrl,
-              txHash: hash
+              txHash: txHash
             }),
           });
 
@@ -327,7 +359,7 @@ export default function Home() {
       };
       saveMintToDb();
     }
-  }, [isConfirmed, hash, generatedImageUrl]);
+  }, [isConfirmed, mintStatus, mintCallId, generatedImageUrl]);
 
   const handleMint = async () => {
     if (!generatedImageUrl || !address) return;
@@ -337,13 +369,24 @@ export default function Home() {
     try {
       const imageUrl = await uploadImage(generatedImageUrl);
 
-      writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: xmasAbi,
-        functionName: 'safeMint',
-        args: [address, imageUrl],
-        value: parseEther("0"), // Free mint for now
+      // Prepare capabilities for Paymaster if URL is set
+      const capabilities = process.env.NEXT_PUBLIC_PAYMASTER_URL ? {
+        paymasterService: {
+          url: process.env.NEXT_PUBLIC_PAYMASTER_URL
+        }
+      } : undefined;
+
+      sendCalls({
+        calls: [{
+          to: CONTRACT_ADDRESS,
+          abi: xmasAbi,
+          functionName: 'safeMint',
+          args: [address, imageUrl],
+          value: parseEther("0"), // Free mint
+        }],
+        capabilities
       });
+
     } catch (error) {
       console.error('Error uploading image for mint:', error);
       handleSetError('Failed to prepare mint. Please try again.');
@@ -419,7 +462,28 @@ export default function Home() {
   const handleGenerateNew = () => {
     sdk.haptics.impactOccurred('medium');
     setGeneratedImageUrl(null);
-    reset();
+    resetMint();
+  };
+
+  const handleAddToken = async () => {
+    if (!walletClient || !tokenAddress || !tokenSymbol) return;
+    try {
+      await walletClient.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: tokenAddress,
+            symbol: tokenSymbol,
+            decimals: tokenDecimals,
+          },
+        },
+      });
+      sdk.haptics.notificationOccurred('success');
+    } catch (e) {
+      console.error("Failed to add token to wallet:", e);
+      handleSetError("Failed to add token to wallet.");
+    }
   };
 
   return (
@@ -485,6 +549,11 @@ export default function Home() {
                 {tokenPriceData && dailyAmount && (
                   <div className={styles.priceTag} style={{ color: tokenPriceData.priceChange_h1 >= 0 ? '#165B33' : '#D42426' }}>
                     <span>Gift Value: ${(parseFloat(formatEther(BigInt(dailyAmount))) * tokenPriceData.priceUsd).toFixed(4)}</span>
+                    {tokenSymbol && (
+                      <button onClick={handleAddToken} className={styles.addTokenButton} title="Add to Wallet">
+                        + 🦊
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -521,11 +590,22 @@ export default function Home() {
                       }
 
                       const { signature, deadline } = await signResponse.json();
-                      writeGiftContract({
-                        address: DAILY_GIFT_CONTRACT,
-                        abi: dailyGiftAbi,
-                        functionName: 'claim',
-                        args: [BigInt(fid!), address, BigInt(deadline), signature],
+
+                      // EIP-5792: sendCalls with Paymaster capability
+                      const capabilities = process.env.NEXT_PUBLIC_PAYMASTER_URL ? {
+                        paymasterService: {
+                          url: process.env.NEXT_PUBLIC_PAYMASTER_URL
+                        }
+                      } : undefined;
+
+                      sendGiftCalls({
+                        calls: [{
+                          to: DAILY_GIFT_CONTRACT,
+                          abi: dailyGiftAbi,
+                          functionName: 'claim',
+                          args: [BigInt(fid!), address, BigInt(deadline), signature],
+                        }],
+                        capabilities
                       });
                     } catch (error: any) {
                       console.error('Error claiming gift:', error);
@@ -627,14 +707,17 @@ export default function Home() {
               {isConfirmed && (
                 <div className={styles.successMessage}>
                   <p>Minted Successfully!</p>
-                  <a
-                    href={`https://basescan.org/tx/${hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.link}
-                  >
-                    View on Basescan
-                  </a>
+                  {/* Note: With batch calls, we might have multiple receipts. Linking to the first one for now. */}
+                  {mintStatus?.receipts?.[0]?.transactionHash && (
+                    <a
+                      href={`https://basescan.org/tx/${mintStatus.receipts[0].transactionHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.link}
+                    >
+                      View on Basescan
+                    </a>
+                  )}
                 </div>
               )}
             </div>
