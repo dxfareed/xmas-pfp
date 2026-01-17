@@ -13,6 +13,7 @@
     "seed": "node --loader ts-node/esm prisma/seed.mjs"
   },
   "dependencies": {
+    "@chainlink/contracts": "^1.5.0",
     "@coinbase/onchainkit": "^1.1.1",
     "@farcaster/frame-wagmi-connector": "^1.0.0",
     "@farcaster/miniapp-sdk": "^0.2.1",

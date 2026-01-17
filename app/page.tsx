@@ -15,6 +15,7 @@ import { formatEther, parseEther } from "viem";
 import { useUser } from "./context/UserContext";
 import { dailyGiftAbi } from "../lib/dailyGiftAbi";
 import Countdown from "./components/Countdown";
+import DailyGiftCard from "./components/DailyGiftCard";
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 const PAY_ADDRESS = process.env.NEXT_PUBLIC_BASEBUILDER_ALLOWED_ADDRESS as `0x${string}`;
@@ -544,34 +545,14 @@ export default function Home() {
             {/* Daily Gift Section - CENTERED HERO */}
             {isConnected && DAILY_GIFT_CONTRACT && (
               <div className={styles.giftSection}>
-                <h1 className={styles.giftTitle}>Daily Christmas Gift</h1>
-
-                {tokenPriceData && dailyAmount && (
-                  <div className={styles.priceTag} style={{ color: tokenPriceData.priceChange_h1 >= 0 ? '#165B33' : '#D42426' }}>
-                    <span>Gift Value: ${(parseFloat(formatEther(BigInt(dailyAmount))) * tokenPriceData.priceUsd).toFixed(4)}</span>
-                    {tokenSymbol && (
-                      <button onClick={handleAddToken} className={styles.addTokenButton} title="Add to Wallet">
-                        + 🦊
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                <p className={styles.giftSubtitle}>Claim your free tokens every {claimInterval} hours!</p>
-                <div className={styles.pfpPreview}>
-                  <Image
-                    src={pfpUrl || '/icon.png'}
-                    alt="Your PFP"
-                    width={80}
-                    height={80}
-                    className={styles.pfpCircle}
-                  />
-                </div>
-
-                <button
-                  className={`${styles.mainGiftButton} ${canClaimGift ? styles.giftAvailable : ''}`}
-                  onClick={async () => {
-                    if (!canClaimGift || !address || isClaimingGift || isGiftPending || isGiftConfirming) return;
+                <DailyGiftCard
+                  canClaim={canClaimGift}
+                  timeUntilNextClaim={timeUntilNextClaim}
+                  isClaiming={isClaimingGift || isGiftPending || isGiftConfirming}
+                  tokenSymbol={tokenSymbol}
+                  onComplete={() => setCanClaimGift(true)}
+                  onClaim={async () => {
+                    if (!address) return;
                     setIsClaimingGift(true);
                     try {
                       const { token } = await sdk.quickAuth.getToken();
@@ -590,12 +571,8 @@ export default function Home() {
                       }
 
                       const { signature, deadline } = await signResponse.json();
-
-                      // EIP-5792: sendCalls with Paymaster capability
                       const capabilities = process.env.NEXT_PUBLIC_PAYMASTER_URL ? {
-                        paymasterService: {
-                          url: process.env.NEXT_PUBLIC_PAYMASTER_URL
-                        }
+                        paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL }
                       } : undefined;
 
                       sendGiftCalls({
@@ -607,42 +584,15 @@ export default function Home() {
                         }],
                         capabilities
                       });
-                    } catch (error: any) {
-                      console.error('Error claiming gift:', error);
-                      handleSetError(error.message || 'Failed to claim gift');
+                    } catch (e: any) {
+                      console.error(e);
+                      handleSetError(e.message);
+                      throw e;
                     } finally {
                       setIsClaimingGift(false);
                     }
                   }}
-                  disabled={!canClaimGift || isClaimingGift || isGiftPending || isGiftConfirming || isCheckingGiftStatus || !hasSufficientBalance}
-                >
-                  {isCheckingGiftStatus ? (
-                    <>
-                      <Loader />
-                      <span>Checking...</span>
-                    </>
-                  ) : !hasSufficientBalance ? (
-                    <span>Sold Out (Contact Dev)</span>
-                  ) : isGiftPending || isGiftConfirming ? (
-                    <>
-                      <Loader />
-                      <span>Processing...</span>
-                    </>
-                  ) : canClaimGift ? (
-                    <>
-                      <Gift size={32} />
-                      <span>CLAIM GIFT</span>
-                    </>
-                  ) : (
-                    <div className={styles.countdownWrapper}>
-                      <span>Next Claim In:</span>
-                      <Countdown
-                        seconds={timeUntilNextClaim}
-                        onComplete={() => setCanClaimGift(true)}
-                      />
-                    </div>
-                  )}
-                </button>
+                />
               </div>
             )}
 

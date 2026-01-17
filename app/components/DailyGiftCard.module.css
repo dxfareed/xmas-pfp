@@ -1,0 +1,271 @@
+/* Degen / Casino Theme */
+.card {
+    background: #0a0a0a;
+    /* distinct dark background */
+    border: 2px solid #39FF14;
+    /* Neon Green */
+    box-shadow: 0 0 15px rgba(57, 255, 20, 0.4), inset 0 0 20px rgba(0, 0, 0, 0.8);
+    border-radius: 16px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-family: 'Courier New', Courier, monospace;
+    /* Tech/Code feel */
+}
+
+.card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 25px rgba(57, 255, 20, 0.6), inset 0 0 10px rgba(57, 255, 20, 0.1);
+}
+
+/* Header */
+.title {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #FFD700;
+    /* Gold */
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+}
+
+.subtitle {
+    font-size: 0.9rem;
+    color: #888;
+    font-weight: 500;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Mystery Box Container */
+.boxContainer {
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+    position: relative;
+    cursor: pointer;
+    background: radial-gradient(circle, rgba(57, 255, 20, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+}
+
+.giftImage {
+    transition: transform 0.1s;
+}
+
+.boxContainer:hover .giftImage {
+    transform: scale(1.05) rotate(2deg);
+}
+
+/* Animations */
+@keyframes flicker {
+    0% {
+        opacity: 1;
+    }
+
+    5% {
+        opacity: 0.8;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    15% {
+        opacity: 1;
+    }
+
+    20% {
+        opacity: 0.5;
+    }
+
+    25% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes shake {
+    0% {
+        transform: translate(1px, 1px) rotate(0deg);
+    }
+
+    10% {
+        transform: translate(-1px, -2px) rotate(-1deg);
+    }
+
+    20% {
+        transform: translate(-3px, 0px) rotate(1deg);
+    }
+
+    30% {
+        transform: translate(3px, 2px) rotate(0deg);
+    }
+
+    40% {
+        transform: translate(1px, -1px) rotate(1deg);
+    }
+
+    50% {
+        transform: translate(-1px, 2px) rotate(-1deg);
+    }
+
+    60% {
+        transform: translate(-3px, 1px) rotate(0deg);
+    }
+
+    70% {
+        transform: translate(3px, 1px) rotate(-1deg);
+    }
+
+    80% {
+        transform: translate(-1px, -1px) rotate(1deg);
+    }
+
+    90% {
+        transform: translate(1px, 2px) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(1px, -2px) rotate(-1deg);
+    }
+}
+
+.shaking {
+    animation: shake 0.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0px #39FF14);
+    }
+
+    50% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 0 10px #39FF14);
+    }
+
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 0px #39FF14);
+    }
+}
+
+.floating {
+    animation: pulse 2s infinite ease-in-out;
+}
+
+/* Button */
+.actionButton {
+    background: #39FF14;
+    /* Neon Green */
+    color: #000;
+    border: none;
+    padding: 1.2rem 3rem;
+    font-size: 1.4rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+    transition: all 0.1s ease;
+    width: 100%;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    /* Cyber shape */
+}
+
+.actionButton:hover:not(:disabled) {
+    background: #fff;
+    color: #000;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+    transform: translateY(-2px);
+}
+
+.actionButton:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.actionButton:disabled {
+    background: #333;
+    color: #666;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* Reveal State */
+.revealContainer {
+    animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-align: center;
+}
+
+.amount {
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 10px #FFD700, 0 0 20px #FFD700;
+    margin: 1rem 0;
+    font-family: 'Impact', sans-serif;
+}
+
+.token {
+    font-size: 1.5rem;
+    color: #39FF14;
+    text-shadow: 0 0 5px #39FF14;
+}
+
+@keyframes zoomIn {
+    0% {
+        transform: scale(0);
+    }
+
+    80% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Status Badges */
+.badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid #39FF14;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #39FF14;
+    box-shadow: 0 0 5px #39FF14;
+}
+
+.badge.ready {
+    border-color: #39FF14;
+    color: #39FF14;
+    animation: flicker 2s infinite;
+}
+
+.badge.locked {
+    border-color: #FF3131;
+    /* Neon Red */
+    color: #FF3131;
+    box-shadow: 0 0 5px #FF3131;
+    animation: none;
+}
