@@ -14,12 +14,12 @@ A Farcaster Mini App that allows users to generate festive AI-powered PFPs, mint
 - **Customization**: Offers style options (e.g., "Christian", "Santa", "Elf") via prompts sent to the backend.
 - **Preview & Share**: Users can preview their generated PFP and instantly share it on Farcaster via `sdk.actions.composeCast`.
 
-### 2. **Daily Token Gift**
-- **ERC20 Rewards**: Users can claim a specific amount of ERC20 tokens every **X** hours (dynamically set by the contract).
-- **Sybil Resistance**:
-  - **Neynar Score Check**: Users must have a Neynar score > **0.2** to authenticate and claim.
-  - **Signature Verification**: Claims require a server-side signature (`api/daily-gift/sign`) that validates the user's FID and eligibility before interacting with the blockchain.
-  - **Time-Based Lock**: Smart contract enforces a strict claim interval (e.g., 24 hours).
+### 2. **Unlimited Casino Mode 🎰**
+- **Pay-to-Play**: Users pay a small entry fee (**0.0001 ETH**) to spin the wheel.
+- **Unlimited Action**: No cooldowns or timers. Play as many times as you like!
+- **Verifiable Randomness**: Powered by **Chainlink VRF V2.5** to guarantee fair and tamper-proof outcomes.
+- **Live Winners Marquee**: Real-time scrolling feed of recent winners to build excitement.
+- **Verified Player Badge**: Displays your Farcaster PFP and Username on the game card.
 
 ### 3. **NFT Minting on Base**
 - **Mint generated PFPs**: Users can mint their favorite AI-generated creations as NFTs on the Base L2 network.
@@ -55,18 +55,31 @@ A Farcaster Mini App that allows users to generate festive AI-powered PFPs, mint
 
 ## 🔐 Smart Contract Architecture
 
-### `DailyGiftXmas.sol`
-The core contract managing the daily token distribution.
+### `DailyGiftVRF.sol`
+The upgraded core contract managing the "Casino Mode" logic.
 
-- **Address**: `0x85F8673D7dfDd7494fb87556d711b4C4F1438b13` (Base Mainnet)
-- **Key Functions**:
-  - `claim(...)`: Validates a server-generated EIP-712/Ethereum Signed Message to release tokens.
-  - `setClaimInterval(...)`: Allows the owner to dynamically change the cooling period (e.g., 6 hours, 24 hours).
-  - `setToken(...)`: Allows updating the reward token address if needed.
-- **Security**:
-  - `ReentrancyGuard`: Prevents reentrancy attacks.
-  - `ECDSA`: Verifies the integrity of the server-side signature.
-  - `Ownable`: Restricts admin functions to the contract owner.
+- **Address**: `0xbac70c40c21dca315b46d7705c9dff6ee12a40de` (Base Mainnet)
+- **Key Features**:
+  - **Payable Claim**: Accepts `0.0001 ETH` per transaction.
+  - **Chainlink VRF V2.5**: Requests random words from Chainlink's VRF Coordinator to determine gift amounts.
+  - **Security**:
+    - `ReentrancyGuard`: Prevents reentrancy attacks.
+    - `VRFConsumerBaseV2Plus`: Inherits standard Chainlink VRF security patterns.
+    - `Ownable`: Restricts admin functions (withdraw ETH, update params).
+
+#### 🤖 AI Agent Context: Contract Flow
+```mermaid
+graph TD
+    User([User]) -->|1. Pay 0.0001 ETH| Contract[DailyGiftVRF]
+    Contract -->|2. Request Randomness| VRF[Chainlink VRF]
+    VRF -->|3. Callback (Random Word)| Contract
+    Contract -->|4. Determine Prize| User
+    
+    subgraph "Verification"
+    User -->|Sign Message| API[Backend Signer]
+    API -->|Signature| User
+    end
+```
 
 ---
 
@@ -104,8 +117,9 @@ The core contract managing the daily token distribution.
     NEXT_PUBLIC_PROJECT_ID="your-walletconnect-project-id"
 
     # Contracts
-    NEXT_PUBLIC_DAILY_GIFT_CONTRACT="0x...."
-    DAILY_GIFT_SIGNER_PRIVATE_KEY="YOUR_SERVER_SIGNER_PRIVATE_KEY" # Must match 'signer' in contract
+    NEXT_PUBLIC_DAILY_GIFT_CONTRACT="0x64c603..."
+    # DAILY_GIFT_SIGNER_PRIVATE_KEY="" # (Optional) If using signatures
+    VRF_SUBSCRIPTION_ID="your-chainlink-sub-id"
     
     # APIs
     NEYNAR_API_KEY="your-neynar-key"
@@ -147,3 +161,17 @@ mini-app/
 ├── prisma/             # Database schema & migrations
 └── public/             # Static assets
 ```
+
+## 🤖 AI Agent & Developer Notes
+
+### Critical Invariants
+1.  **Contract Address**: `0xbac70c40c21dca315b46d7705c9dff6ee12a40de` (Base Mainnet).
+2.  **Entry Fee**: Must be exactly `0.0001 ETH` or transaction reverts (`InvalidEntryFee`).
+3.  **VRF**: Uses V2.5. Subscription ID is `uint256`.
+4.  **Auth**: Backend requires valid Farcaster `custody` or `signer` address for signatures.
+
+### Key File Mapping
+-   **Contract Logic**: `contracts/DailyGiftVRF.sol`
+-   **Deployment**: `scripts/deploy-vrf.ts`
+-   **Frontend Claim**: `app/components/DailyGiftCard.tsx`
+-   **Signer API**: `app/api/daily-gift/sign/route.ts`

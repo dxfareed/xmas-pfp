@@ -16,6 +16,7 @@ import { useUser } from "./context/UserContext";
 import { dailyGiftAbi } from "../lib/dailyGiftAbi";
 import Countdown from "./components/Countdown";
 import DailyGiftCard from "./components/DailyGiftCard";
+import LiveWinnersMarquee from "./components/LiveWinnersMarquee";
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 const PAY_ADDRESS = process.env.NEXT_PUBLIC_BASEBUILDER_ALLOWED_ADDRESS as `0x${string}`;
@@ -35,7 +36,7 @@ export default function Home() {
     }
   });
 
-  const { fid, pfpUrl, isLoading: isUserLoading, isInFarcaster } = useUser();
+  const { fid, pfpUrl, username, isLoading: isUserLoading, isInFarcaster } = useUser();
 
   const [nftImageUrl, setNftImageUrl] = useState<string | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
@@ -546,11 +547,13 @@ export default function Home() {
             {isConnected && DAILY_GIFT_CONTRACT && (
               <div className={styles.giftSection}>
                 <DailyGiftCard
-                  canClaim={canClaimGift}
-                  timeUntilNextClaim={timeUntilNextClaim}
+
+
+                  username={username}
+                  pfpUrl={pfpUrl}
                   isClaiming={isClaimingGift || isGiftPending || isGiftConfirming}
                   tokenSymbol={tokenSymbol}
-                  onComplete={() => setCanClaimGift(true)}
+
                   onClaim={async () => {
                     if (!address) return;
                     setIsClaimingGift(true);
@@ -581,6 +584,7 @@ export default function Home() {
                           abi: dailyGiftAbi,
                           functionName: 'claim',
                           args: [BigInt(fid!), address, BigInt(deadline), signature],
+                          value: BigInt(100000000000000), // 0.0001 ETH
                         }],
                         capabilities
                       });
@@ -593,6 +597,9 @@ export default function Home() {
                     }
                   }}
                 />
+                <div style={{ marginTop: '1rem', overflow: 'hidden', borderRadius: '8px' }}>
+                  <LiveWinnersMarquee />
+                </div>
               </div>
             )}
 
