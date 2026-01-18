@@ -70,14 +70,14 @@ The upgraded core contract managing the "Casino Mode" logic.
 #### 🤖 AI Agent Context: Contract Flow
 ```mermaid
 graph TD
-    User([User]) -->|1. Pay 0.0001 ETH| Contract[DailyGiftVRF]
-    Contract -->|2. Request Randomness| VRF[Chainlink VRF]
-    VRF -->|3. Callback (Random Word)| Contract
-    Contract -->|4. Determine Prize| User
+    User([User]) -->|"1. Pay 0.0001 ETH"| Contract[DailyGiftVRF]
+    Contract -->|"2. Request Randomness"| VRF[Chainlink VRF]
+    VRF -->|"3. Callback (Random Word)"| Contract
+    Contract -->|"4. Determine Prize"| User
     
     subgraph "Verification"
-    User -->|Sign Message| API[Backend Signer]
-    API -->|Signature| User
+    User -->|"Sign Message"| API[Backend Signer]
+    API -->|"Signature"| User
     end
 ```
 
