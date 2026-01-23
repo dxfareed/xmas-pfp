@@ -60,40 +60,18 @@ export default function DailyGiftCard({
 
             {/* Profile Header */}
             {username && (
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    marginBottom: '1rem',
-                    background: 'rgba(57, 255, 20, 0.1)',
-                    padding: '0.5rem',
-                    borderRadius: '20px',
-                    border: '1px solid #39FF14'
-                }}>
+                <div className={styles.profileHeader}>
                     {pfpUrl && (
                         <img
                             src={pfpUrl}
                             alt={username}
-                            style={{
-                                width: '24px',
-                                height: '24px',
-                                borderRadius: '50%',
-                                border: '1px solid #fff'
-                            }}
+                            className={styles.profileAvatar}
                         />
                     )}
-                    <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                    <span className={styles.profileName}>
                         @{username}
                     </span>
-                    <span style={{
-                        fontSize: '0.7rem',
-                        background: '#39FF14',
-                        color: '#000',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontWeight: '900'
-                    }}>
+                    <span className={styles.profileBadge}>
                         VERIFIED
                     </span>
                 </div>
@@ -126,13 +104,7 @@ export default function DailyGiftCard({
                         ${styles.giftImage} 
                         ${state === 'OPENING' || state === 'WAITING_VRF' ? styles.shaking : styles.floating}
                     `}>
-                        <div style={{
-                            background: '#000',
-                            padding: '2rem',
-                            borderRadius: '1rem',
-                            border: '2px solid #39FF14',
-                            boxShadow: '0 0 10px #39FF14'
-                        }}>
+                        <div className={styles.giftBoxInner}>
                             <Gift size={64} color="#39FF14" />
                         </div>
                     </div>

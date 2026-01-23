@@ -53,7 +53,7 @@
   border: 4px solid #000;
   box-shadow: 8px 8px 0px #165B33;
   padding: 2.5rem;
-  width: 100%;
+  width: 75%;
   position: relative;
   overflow: hidden;
 }
@@ -141,7 +141,7 @@
 
 /* Generator Section (Secondary) */
 .generatorSection {
-  width: 100%;
+  width: 87%;
   background: rgba(255, 255, 255, 0.8);
   border: 3px solid #000;
   padding: 1.5rem;
@@ -395,5 +395,33 @@
   50% {
     transform: scale(1.02);
     box-shadow: 9px 9px 0px #000;
+  }
+}
+
+@media (max-width: 600px) {
+  .mainContainer {
+    padding: 0.5rem;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .giftSection {
+    padding: 0.5rem;
+    width: 87%;
+    /* max-width: 100%; */
+    overflow: hidden;
+    /* Strict clipping to prevent children like marquee from overflowing */
+    box-sizing: border-box;
+  }
+
+  .giftTitle {
+    font-size: 1.8rem;
+  }
+
+  .giftSubtitle {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
   }
 }
