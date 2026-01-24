@@ -66,22 +66,27 @@ export async function POST(request: NextRequest) {
         // Calculate deadline (current time + validity period)
         const deadline = BigInt(Math.floor(Date.now() / 1000) + SIGNATURE_VALIDITY_SECONDS);
 
-        // Create the message hash
-        // Must match contract: keccak256(abi.encodePacked(fid, recipient, deadline, chainId, contractAddress))
+        // 3. Generate Random Prize
+        // Logic: 0.001 USDC (min) to 1 USDC (max)
+        const MIN_AMOUNT = 1000;
+        const MAX_AMOUNT = 1000000;
+        const amount = Math.floor(Math.random() * (MAX_AMOUNT - MIN_AMOUNT + 1)) + MIN_AMOUNT;
+
+        // 4. Create the message hash
+        // Must match NEW contract: keccak256(abi.encodePacked(fid, recipient, amount, deadline))
         const messageHash = keccak256(
             encodePacked(
-                ["uint256", "address", "uint256", "uint256", "address"],
+                ["uint256", "address", "uint256", "uint256"],
                 [
                     BigInt(fid),
                     recipientAddress as `0x${string}`,
-                    deadline,
-                    BigInt(base.id),  // Chain ID (Base mainnet = 8453)
-                    DAILY_GIFT_CONTRACT
+                    BigInt(amount),
+                    deadline
                 ]
             )
         );
 
-        // Sign the message (this produces an EIP-191 signed message)
+        // Sign
         const signature = await account.signMessage({
             message: { raw: messageHash as `0x${string}` },
         });
@@ -91,6 +96,7 @@ export async function POST(request: NextRequest) {
             fid: fid,
             recipient: recipientAddress,
             deadline: deadline.toString(),
+            amount: amount,
             signature: signature,
         });
     } catch (error) {

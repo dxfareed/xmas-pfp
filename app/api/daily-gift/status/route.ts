@@ -20,66 +20,40 @@ export async function GET(request: NextRequest) {
 
     try {
         console.log("Checking gift status for FID:", fid);
-        console.log("Contract Address:", DAILY_GIFT_CONTRACT);
 
         if (!DAILY_GIFT_CONTRACT) {
             console.error("DAILY_GIFT_CONTRACT is not defined");
             return NextResponse.json({ message: "Contract not configured" }, { status: 500 });
         }
 
-        // Check if user can claim
-        console.log("Reading canClaim...");
-        const canClaim = await publicClient.readContract({
-            address: DAILY_GIFT_CONTRACT,
-            abi: dailyGiftAbi,
-            functionName: "canClaim",
-            args: [BigInt(fid)],
-        });
-        console.log("canClaim result:", canClaim);
+        // --- Unlimited Casino Mode ---
+        // Always allow claim, no cooldowns, no daily limit checks here (handled by entry fee/rng)
 
-        // Get time until next claim
-        const timeUntilNextClaim = await publicClient.readContract({
-            address: DAILY_GIFT_CONTRACT,
-            abi: dailyGiftAbi,
-            functionName: "timeUntilNextClaim",
-            args: [BigInt(fid)],
-        });
+        const canClaim = true;
+        const timeUntilNextClaim = 0;
+        const claimInterval = 0;
+        const dailyAmount = "0"; // Varies per spin
 
-        // Get daily amount
-        const dailyAmount = await publicClient.readContract({
-            address: DAILY_GIFT_CONTRACT,
-            abi: dailyGiftAbi,
-            functionName: "dailyAmount",
-        });
+        // Get token address from contract
+        let tokenAddress: `0x${string}` | undefined;
+        try {
+            tokenAddress = await publicClient.readContract({
+                address: DAILY_GIFT_CONTRACT,
+                abi: dailyGiftAbi,
+                functionName: "token",
+            }) as `0x${string}`;
+        } catch (e) {
+            console.error("Failed to read token address:", e);
+        }
 
-        // Get claim interval
-        const claimInterval = await publicClient.readContract({
-            address: DAILY_GIFT_CONTRACT,
-            abi: dailyGiftAbi,
-            functionName: "claimInterval",
-        });
-
-        // Get token address
-        const tokenAddress = await publicClient.readContract({
-            address: DAILY_GIFT_CONTRACT,
-            abi: dailyGiftAbi,
-            functionName: "token",
-        });
-
-        // Check contract balance
-        const contractBalance = await publicClient.readContract({
-            address: DAILY_GIFT_CONTRACT,
-            abi: dailyGiftAbi,
-            functionName: "getBalance",
-        });
-
-        // Get Token Details (Symbol & Decimals)
+        // Get Token Details & Balance
         let tokenSymbol = 'TOKEN';
         let tokenDecimals = 18;
+        let hasSufficientBalance = true;
 
-        try {
-            if (tokenAddress) {
-                const [symbol, decimals] = await Promise.all([
+        if (tokenAddress) {
+            try {
+                const [symbol, decimals, balance] = await Promise.all([
                     publicClient.readContract({
                         address: tokenAddress,
                         abi: erc20Abi,
@@ -89,26 +63,33 @@ export async function GET(request: NextRequest) {
                         address: tokenAddress,
                         abi: erc20Abi,
                         functionName: 'decimals'
+                    }),
+                    publicClient.readContract({
+                        address: tokenAddress,
+                        abi: erc20Abi,
+                        functionName: 'balanceOf',
+                        args: [DAILY_GIFT_CONTRACT]
                     })
                 ]);
-                tokenSymbol = symbol;
-                tokenDecimals = decimals;
+                tokenSymbol = symbol as string;
+                tokenDecimals = Number(decimals);
+                // Just check if contract has ANY tokens to pay out
+                //@ts-ignore
+                hasSufficientBalance = (balance as bigint) > 0n;
+            } catch (e) {
+                console.error("Failed to fetch token details:", e);
             }
-        } catch (e) {
-            console.error("Failed to fetch token details:", e);
         }
-
-        const hasSufficientBalance = BigInt(contractBalance as bigint) >= BigInt(dailyAmount as bigint);
 
         return NextResponse.json({
             fid: fid,
             canClaim: canClaim,
-            timeUntilNextClaim: Number(timeUntilNextClaim),
-            dailyAmount: dailyAmount.toString(),
+            timeUntilNextClaim: timeUntilNextClaim,
+            dailyAmount: dailyAmount,
             tokenAddress: tokenAddress,
             tokenSymbol: tokenSymbol,
             tokenDecimals: tokenDecimals,
-            claimInterval: Number(claimInterval),
+            claimInterval: claimInterval,
             hasSufficientBalance: hasSufficientBalance,
         });
     } catch (error: any) {

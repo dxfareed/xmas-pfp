@@ -573,7 +573,11 @@ export default function Home() {
                         throw new Error(errorData.message || 'Failed to get signature');
                       }
 
-                      const { signature, deadline } = await signResponse.json();
+                      const { signature, deadline, amount } = await signResponse.json();
+
+                      // Update state immediately so Marquee/Cast has correct amount
+                      setDailyAmount(amount.toString());
+
                       const capabilities = process.env.NEXT_PUBLIC_PAYMASTER_URL ? {
                         paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL }
                       } : undefined;
@@ -583,11 +587,14 @@ export default function Home() {
                           to: DAILY_GIFT_CONTRACT,
                           abi: dailyGiftAbi,
                           functionName: 'claim',
-                          args: [BigInt(fid!), address, BigInt(deadline), signature],
+                          args: [BigInt(fid!), address, BigInt(amount), BigInt(deadline), signature],
                           value: BigInt(100000000000000), // 0.0001 ETH
                         }],
                         capabilities
                       });
+
+                      // Return amount for UI display (DailyGiftCard)
+                      return amount.toString();
                     } catch (e: any) {
                       console.error(e);
                       handleSetError(e.message);

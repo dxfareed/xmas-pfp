@@ -8,26 +8,19 @@ import path from 'path'
 
 config()
 
-// --- Config (Base Mainnet VRF V2.5) ---
-const VRF_COORDINATOR = '0xd5D517aBE5cF79B7e95eC98dB0f0277788aFF634'
-// Key Hash (2 gwei) - "Economy" Lane to lower reserve cost
-const KEY_HASH = '0x00b81b5a830cb0a4009fbd8904de511e28631e62ce5ad231373d3cdad373ccab'
-
+// --- Config ---
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-
-const MIN_AMOUNT = BigInt(1000) // 0.001 USDC (6 decimals)
-const MAX_AMOUNT = BigInt(1000000) // 1 USDC (6 decimals)
 
 async function main() {
     const privateKey = process.env.DEPLOYER_PRIVATE_KEY as `0x${string}`
-    const subIdString = process.env.VRF_SUBSCRIPTION_ID
+    const signerKey = process.env.DAILY_GIFT_SIGNER_PRIVATE_KEY as `0x${string}`
 
-    if (!privateKey || !subIdString) {
-        throw new Error('Missing env vars: DEPLOYER_PRIVATE_KEY or VRF_SUBSCRIPTION_ID')
+    if (!privateKey || !signerKey) {
+        throw new Error('Missing env vars: DEPLOYER_PRIVATE_KEY or DAILY_GIFT_SIGNER_PRIVATE_KEY')
     }
 
-    const subId = BigInt(subIdString)
     const account = privateKeyToAccount(privateKey)
+    const signerAccount = privateKeyToAccount(signerKey) // Using the signer public address for contract
 
     const client = createWalletClient({
         account,
@@ -36,30 +29,24 @@ async function main() {
     }).extend(publicActions)
 
     // Load Artifacts
-    const artifactPath = path.join(process.cwd(), 'artifacts/contracts/DailyGiftVRF.sol/DailyGiftVRF.json')
+    const artifactPath = path.join(process.cwd(), 'artifacts/contracts/DailyGift.sol/DailyGift.json')
     if (!fs.existsSync(artifactPath)) {
         throw new Error('Artifact not found. Run npx hardhat compile first.')
     }
     const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'))
 
-    console.log(`Deploying DailyGiftVRF...`)
-    console.log(`- Coordinator: ${VRF_COORDINATOR}`)
+    console.log(`Deploying DailyGift (Server Mode)...`)
     console.log(`- Token: ${USDC_ADDRESS}`)
-    console.log(`- Signer: ${account.address}`)
-    console.log(`- SubId: ${subId}`)
+    console.log(`- Signer: ${signerAccount.address}`)
+    console.log(`- Owner: ${account.address}`)
 
     // Deploy
     const hash = await client.deployContract({
         abi: artifact.abi,
         bytecode: artifact.bytecode,
         args: [
-            VRF_COORDINATOR,
             USDC_ADDRESS,
-            account.address, // Signer (default to deployer)
-            subId,
-            KEY_HASH,
-            MIN_AMOUNT,
-            MAX_AMOUNT
+            signerAccount.address
         ]
     })
 
@@ -76,11 +63,10 @@ async function main() {
     const receipt = await publicClient.waitForTransactionReceipt({ hash })
 
     if (receipt.contractAddress) {
-        console.log(`\n✅ Deployed DailyGiftVRF to: ${receipt.contractAddress}\n`)
+        console.log(`\n✅ Deployed DailyGift to: ${receipt.contractAddress}\n`)
         console.log(`NEXT STEPS:`)
-        console.log(`1. Add consumer ${receipt.contractAddress} to VRF Subscription ${subId}`)
-        console.log(`2. Send USDC to ${receipt.contractAddress}`)
-        console.log(`3. Update NEXT_PUBLIC_DAILY_GIFT_CONTRACT in .env`)
+        console.log(`1. Send USDC to ${receipt.contractAddress}`)
+        console.log(`2. Update NEXT_PUBLIC_DAILY_GIFT_CONTRACT in .env`)
     } else {
         console.error('Deployment failed or contract address missing')
     }

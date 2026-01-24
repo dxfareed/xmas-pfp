@@ -165,6 +165,20 @@
     }
 }
 
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner {
+    animation: rotate 1s linear infinite;
+}
+
 .floating {
     animation: pulse 2s infinite ease-in-out;
 }
@@ -185,6 +199,10 @@
     width: 100%;
     clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
     /* Cyber shape */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .actionButton:hover:not(:disabled) {

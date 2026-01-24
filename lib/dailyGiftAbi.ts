@@ -1,9 +1,9 @@
+
 export const dailyGiftAbi = [
     {
         "inputs": [
             { "internalType": "address", "name": "_token", "type": "address" },
-            { "internalType": "address", "name": "_signer", "type": "address" },
-            { "internalType": "uint256", "name": "_dailyAmount", "type": "uint256" }
+            { "internalType": "address", "name": "_signer", "type": "address" }
         ],
         "stateMutability": "nonpayable",
         "type": "constructor"
@@ -15,24 +15,7 @@ export const dailyGiftAbi = [
             { "indexed": true, "internalType": "address", "name": "recipient", "type": "address" },
             { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
         ],
-        "name": "Claimed",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            { "indexed": false, "internalType": "uint256", "name": "newAmount", "type": "uint256" }
-        ],
-        "name": "DailyAmountUpdated",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            { "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" },
-            { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }
-        ],
-        "name": "OwnershipTransferred",
+        "name": "GiftDistributed",
         "type": "event"
     },
     {
@@ -46,85 +29,43 @@ export const dailyGiftAbi = [
     {
         "anonymous": false,
         "inputs": [
-            { "indexed": true, "internalType": "address", "name": "oldToken", "type": "address" },
-            { "indexed": true, "internalType": "address", "name": "newToken", "type": "address" }
+            { "indexed": false, "internalType": "address", "name": "newToken", "type": "address" }
         ],
         "name": "TokenUpdated",
         "type": "event"
     },
     {
-        "inputs": [],
-        "name": "claimInterval",
-        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "uint256", "name": "fid", "type": "uint256" }],
-        "name": "canClaim",
-        "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
         "inputs": [
             { "internalType": "uint256", "name": "fid", "type": "uint256" },
             { "internalType": "address", "name": "recipient", "type": "address" },
+            { "internalType": "uint256", "name": "amount", "type": "uint256" },
             { "internalType": "uint256", "name": "deadline", "type": "uint256" },
             { "internalType": "bytes", "name": "signature", "type": "bytes" }
         ],
         "name": "claim",
         "outputs": [],
-        "stateMutability": "nonpayable",
+        "stateMutability": "payable",
         "type": "function"
     },
     {
-        "inputs": [],
-        "name": "dailyAmount",
-        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-        "name": "lastClaim",
+        "inputs": [{ "internalType": "uint256", "name": "fid", "type": "uint256" }],
+        "name": "getLastPlayed",
         "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
         "stateMutability": "view",
         "type": "function"
     },
     {
         "inputs": [],
-        "name": "getBalance",
-        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "owner",
+        "name": "signer",
         "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
         "stateMutability": "view",
         "type": "function"
     },
     {
         "inputs": [],
-        "name": "renounceOwnership",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "uint256", "name": "_amount", "type": "uint256" }],
-        "name": "setDailyAmount",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "uint256", "name": "_interval", "type": "uint256" }],
-        "name": "setClaimInterval",
-        "outputs": [],
-        "stateMutability": "nonpayable",
+        "name": "token",
+        "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -143,35 +84,17 @@ export const dailyGiftAbi = [
     },
     {
         "inputs": [],
-        "name": "signer",
-        "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "uint256", "name": "fid", "type": "uint256" }],
-        "name": "timeUntilNextClaim",
-        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "token",
-        "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }],
-        "name": "transferOwnership",
+        "name": "withdrawETH",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
     },
     {
-        "inputs": [{ "internalType": "uint256", "name": "amount", "type": "uint256" }],
-        "name": "withdrawTokens",
+        "inputs": [
+            { "internalType": "address", "name": "_token", "type": "address" },
+            { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+        ],
+        "name": "withdrawToken",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
