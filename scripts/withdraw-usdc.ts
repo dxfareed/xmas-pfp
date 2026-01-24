@@ -10,7 +10,7 @@ config()
 
 
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-const CONTRACT_ADDRESS = "0xee8a4d91935001fb3ab3700deecc16530b1fc3b3";
+const CONTRACT_ADDRESS = "0x360e50042e9d0819d1c4d7d8fa5ed761e63d500d";
 
 async function main() {
     if (!CONTRACT_ADDRESS) {

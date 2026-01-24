@@ -11,11 +11,12 @@ import { formatEther } from 'viem';
 type GiftState = 'LOCKED' | 'READY' | 'REQUESTING' | 'WAITING_VRF' | 'OPENING' | 'REVEALED';
 
 interface DailyGiftCardProps {
-    onClaim: () => Promise<string>; // Returns the amount in wei
+    onClaim: () => Promise<void>;
     isClaiming: boolean;
     tokenSymbol: string;
     username?: string | null;
     pfpUrl?: string | null;
+    revealedAmount?: string | null; // Async reveal amount
 }
 
 export default function DailyGiftCard({
@@ -23,7 +24,8 @@ export default function DailyGiftCard({
     isClaiming,
     tokenSymbol,
     username,
-    pfpUrl
+    pfpUrl,
+    revealedAmount
 }: DailyGiftCardProps) {
     const [state, setState] = useState<GiftState>('READY');
     const [rewardAmount, setRewardAmount] = useState<string>('0');
@@ -33,48 +35,24 @@ export default function DailyGiftCard({
     useEffect(() => {
         if (state === 'REVEALED') return; // Don't auto-reset if revealed, let user click "Play Again"
 
-        if (isClaiming) {
+        if (revealedAmount && revealedAmount !== '0') {
+            // Async reveal finished!
+            setRewardAmount(revealedAmount);
+            setState('REVEALED');
+            setShowConfetti(true);
+        } else if (isClaiming) {
             setState('REQUESTING');
-        } else if (state !== 'OPENING' && state !== 'WAITING_VRF') {
+        } else if (state !== 'OPENING' && state !== 'WAITING_VRF' && state !== 'REQUESTING') {
             setState('READY'); // Always ready (Casino Mode)
         }
-    }, [isClaiming, state]);
+    }, [isClaiming, state, revealedAmount]);
 
     const handleOpen = async () => {
         if (state !== 'READY') return;
 
         try {
-            const amountWei = await onClaim();
-            if (amountWei) {
-                // Determine decimals? Assuming 6 for USDC or 18?
-                // Actually page.tsx returns raw Wei (e.g. 1000 - 1000000).
-                // Wait, USDC is 6 decimals. 1000000 = 1 USDC.
-                // formatEther does 18 decimals!
-                // If token is USDC, formatEther gives 0.000000000001.
-                // We need formatUnits(amount, 6).
-                // But `DailyGiftCard` doesn't know decimals?
-                // We should assume specific formatting or pass formatted string.
-                // Let's assume page.tsx returns STRING meant for display? No, it returned `amount.toString()`.
-                // Let's format it here based on tokenSymbol?
-                // Ideally default to 18 unless USDC.
-                // Actually, let's just use a helper or simple division if we know it's USDC.
-                // But wait, the API random logic was `1000` to `1000000`.
-                // If it's USDC (6 decimals), 1000000 = 1.0.
-                // If I use `formatEther`, it's 18 decimals.
-                // I should import `formatUnits`.
-                // For now, let's just assume `formatEther` if we don't know.
-                // BUT User uses USDC.
-                // I should update page.tsx to return FORMATTED amount?
-                // Or update `DailyGiftCard` to use `formatUnits(BigInt(amountWei), 6)`.
-                // Let's use formatUnits.
-            }
-            // For now, just set it directly if format logic is complex, or format it.
-            // Let's stick to formatEther for safety or check context. 
-            // Actually, the API generates 1000-1000000. 
-            // If USDC (6 decimals), that is 0.001 to 1.0. Correct.
-            // If I format with 18 decimals it will be tiny.
-            // I will use `formatUnits(val, 6)` for USDC.
-            setRewardAmount((parseInt(amountWei) / 1000000).toFixed(6)); // Simple hack for USDC
+            await onClaim();
+            // We wait for parent to update 'revealedAmount' via props
         } catch (error) {
             console.error('Claim error:', error);
             setState('READY');

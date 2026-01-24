@@ -2,8 +2,7 @@
 export const dailyGiftAbi = [
     {
         "inputs": [
-            { "internalType": "address", "name": "_token", "type": "address" },
-            { "internalType": "address", "name": "_signer", "type": "address" }
+            { "internalType": "address", "name": "_token", "type": "address" }
         ],
         "stateMutability": "nonpayable",
         "type": "constructor"
@@ -12,18 +11,20 @@ export const dailyGiftAbi = [
         "anonymous": false,
         "inputs": [
             { "indexed": true, "internalType": "uint256", "name": "fid", "type": "uint256" },
-            { "indexed": true, "internalType": "address", "name": "recipient", "type": "address" },
-            { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+            { "indexed": true, "internalType": "address", "name": "player", "type": "address" },
+            { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
         ],
-        "name": "GiftDistributed",
+        "name": "Played",
         "type": "event"
     },
     {
         "anonymous": false,
         "inputs": [
-            { "indexed": false, "internalType": "address", "name": "newSigner", "type": "address" }
+            { "indexed": true, "internalType": "uint256", "name": "fid", "type": "uint256" },
+            { "indexed": true, "internalType": "address", "name": "player", "type": "address" },
+            { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
         ],
-        "name": "SignerUpdated",
+        "name": "Payout",
         "type": "event"
     },
     {
@@ -35,16 +36,21 @@ export const dailyGiftAbi = [
         "type": "event"
     },
     {
+        "inputs": [{ "internalType": "uint256", "name": "fid", "type": "uint256" }],
+        "name": "play",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
         "inputs": [
             { "internalType": "uint256", "name": "fid", "type": "uint256" },
             { "internalType": "address", "name": "recipient", "type": "address" },
-            { "internalType": "uint256", "name": "amount", "type": "uint256" },
-            { "internalType": "uint256", "name": "deadline", "type": "uint256" },
-            { "internalType": "bytes", "name": "signature", "type": "bytes" }
+            { "internalType": "uint256", "name": "amount", "type": "uint256" }
         ],
-        "name": "claim",
+        "name": "payout",
         "outputs": [],
-        "stateMutability": "payable",
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {
@@ -56,7 +62,7 @@ export const dailyGiftAbi = [
     },
     {
         "inputs": [],
-        "name": "signer",
+        "name": "owner",
         "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
         "stateMutability": "view",
         "type": "function"
@@ -66,13 +72,6 @@ export const dailyGiftAbi = [
         "name": "token",
         "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
         "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [{ "internalType": "address", "name": "_signer", "type": "address" }],
-        "name": "setSigner",
-        "outputs": [],
-        "stateMutability": "nonpayable",
         "type": "function"
     },
     {

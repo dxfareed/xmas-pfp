@@ -45,8 +45,7 @@ async function main() {
         abi: artifact.abi,
         bytecode: artifact.bytecode,
         args: [
-            USDC_ADDRESS,
-            signerAccount.address
+            USDC_ADDRESS
         ]
     })
 

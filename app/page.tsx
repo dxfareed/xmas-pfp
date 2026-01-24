@@ -26,6 +26,8 @@ export default function Home() {
   const { openConnectModal } = useConnectModal();
   const { isConnected, address, isConnecting } = useAccount();
 
+  const [revealedAmount, setRevealedAmount] = useState<string | null>(null);
+
   // EIP-5792 Hooks
   const { sendCalls, data: mintCallId, error: mintError, isPending: isMinting, reset: resetMint } = useSendCalls();
   const { data: mintStatus, isLoading: isConfirming, isSuccess: isConfirmed } = useCallsStatus({
@@ -76,7 +78,7 @@ export default function Home() {
 
   // Daily Gift Claim Transaction (EIP-5792)
   const { sendCalls: sendGiftCalls, data: giftCallId, error: giftError, isPending: isGiftPending, reset: resetGift } = useSendCalls();
-  const { isLoading: isGiftConfirming, isSuccess: isGiftConfirmed } = useCallsStatus({
+  const { data: giftStatus, isLoading: isGiftConfirming, isSuccess: isGiftConfirmed } = useCallsStatus({
     id: giftCallId?.id as string,
     query: {
       enabled: !!giftCallId,
@@ -139,17 +141,57 @@ export default function Home() {
     checkGiftStatus();
   }, [fid, giftClaimed]);
 
-  // Update state when gift is claimed
+  // Handle Reveal after Claim Confirmation
   useEffect(() => {
-    if (isGiftConfirmed) {
-      setGiftClaimed(true);
-      setCanClaimGift(false);
+    if (isGiftConfirmed && !giftClaimed && !revealedAmount) {
+      const revealPrize = async () => {
+        try {
+          const txHash = giftStatus?.receipts?.[0]?.transactionHash;
+          if (!txHash) return; // Wait for receipt
 
+          const { token } = await sdk.quickAuth.getToken();
+          const response = await fetch('/api/daily-gift/reveal', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              txHash,
+              recipientAddress: address
+            })
+          });
+
+          if (!response.ok) throw new Error("Reveal failed");
+
+          const data = await response.json();
+          if (data.amount) {
+            // Format: 1000000 -> 1.0000
+            const raw = parseInt(data.amount);
+            const formatted = (raw / 1000000).toFixed(4);
+
+            setRevealedAmount(formatted);
+            setDailyAmount(data.amount.toString()); // For marquee
+            setGiftClaimed(true);
+          }
+        } catch (e) {
+          console.error("Reveal error:", e);
+          handleSetError("Claim confirmed, but reveal failed. Check wallet for USDC.");
+          setGiftClaimed(true); // Don't loop
+        }
+      };
+      revealPrize();
+    }
+  }, [isGiftConfirmed, giftStatus, address, giftClaimed, revealedAmount]);
+
+  // Update state when gift is claimed (Marquee logic)
+  useEffect(() => {
+    if (isGiftConfirmed && dailyAmount && dailyAmount !== '0') {
       // Open compose cast popup
       const rootUrl = process.env.NEXT_PUBLIC_URL || 'https://your-app-url.com';
-      const formattedAmount = formatEther(BigInt(dailyAmount));
+      const formattedAmount = (parseInt(dailyAmount) / 1000000).toFixed(6); // USDC Logic
       sdk.actions.composeCast({
-        text: `I just claimed ${formattedAmount} $GIFT! 🎁🎄 Go claim yours on Xmas PFP`,
+        text: `I just won ${formattedAmount} USDC! 🎁🎄 Go claim yours on Xmas PFP`,
         embeds: [rootUrl],
       });
     }
@@ -547,37 +589,16 @@ export default function Home() {
             {isConnected && DAILY_GIFT_CONTRACT && (
               <div className={styles.giftSection}>
                 <DailyGiftCard
-
-
                   username={username}
                   pfpUrl={pfpUrl}
                   isClaiming={isClaimingGift || isGiftPending || isGiftConfirming}
                   tokenSymbol={tokenSymbol}
-
                   onClaim={async () => {
                     if (!address) return;
                     setIsClaimingGift(true);
+                    setRevealedAmount(null); // Reset
                     try {
-                      const { token } = await sdk.quickAuth.getToken();
-                      const signResponse = await fetch('/api/daily-gift/sign', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({ recipientAddress: address }),
-                      });
-
-                      if (!signResponse.ok) {
-                        const errorData = await signResponse.json().catch(() => ({}));
-                        throw new Error(errorData.message || 'Failed to get signature');
-                      }
-
-                      const { signature, deadline, amount } = await signResponse.json();
-
-                      // Update state immediately so Marquee/Cast has correct amount
-                      setDailyAmount(amount.toString());
-
+                      // Prepare capabilities if needed
                       const capabilities = process.env.NEXT_PUBLIC_PAYMASTER_URL ? {
                         paymasterService: { url: process.env.NEXT_PUBLIC_PAYMASTER_URL }
                       } : undefined;
@@ -586,15 +607,12 @@ export default function Home() {
                         calls: [{
                           to: DAILY_GIFT_CONTRACT,
                           abi: dailyGiftAbi,
-                          functionName: 'claim',
-                          args: [BigInt(fid!), address, BigInt(amount), BigInt(deadline), signature],
+                          functionName: 'play',
+                          args: [BigInt(fid!)],
                           value: BigInt(100000000000000), // 0.0001 ETH
                         }],
                         capabilities
                       });
-
-                      // Return amount for UI display (DailyGiftCard)
-                      return amount.toString();
                     } catch (e: any) {
                       console.error(e);
                       handleSetError(e.message);
@@ -603,6 +621,7 @@ export default function Home() {
                       setIsClaimingGift(false);
                     }
                   }}
+                  revealedAmount={revealedAmount}
                 />
                 <div style={{ marginTop: '1rem', overflow: 'hidden', borderRadius: '8px' }}>
                   <LiveWinnersMarquee />
