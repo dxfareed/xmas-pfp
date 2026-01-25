@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { useAccount, useWalletClient } from 'wagmi';
+import { useAccount, useWalletClient, useReadContract } from 'wagmi';
 import { useSendCalls, useCallsStatus } from 'wagmi/experimental';
 import { sdk } from '@farcaster/miniapp-sdk';
 import Loader from "./components/Loader";
@@ -11,7 +11,7 @@ import { Gift } from 'lucide-react';
 
 import { withRetry } from "../lib/retry";
 import { xmasAbi } from "../lib/abi";
-import { formatEther, parseEther } from "viem";
+import { formatEther, parseEther, formatUnits, parseAbi } from "viem";
 import { useUser } from "./context/UserContext";
 import { dailyGiftAbi } from "../lib/dailyGiftAbi";
 import Countdown from "./components/Countdown";
@@ -75,6 +75,26 @@ export default function Home() {
   const [tokenAddress, setTokenAddress] = useState<string>('');
 
   const { data: walletClient } = useWalletClient();
+
+  // Love Pot Balance (USDC) - Direct Read
+  const USDC_ADDR = (process.env.NEXT_PUBLIC_USDC_ADDRESS || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913') as `0x${string}`;
+
+  const { data: usdcBalanceData, error: readError, isLoading: isReadingBalance } = useReadContract({
+    address: USDC_ADDR,
+    abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
+    functionName: 'balanceOf',
+    args: [DAILY_GIFT_CONTRACT],
+    query: {
+      refetchInterval: 5000
+    }
+  });
+
+  // Format Pot Balance (USDC is 6 decimals)
+  const potBalanceDisplay = readError
+    ? "ERR"
+    : usdcBalanceData
+      ? parseFloat(formatUnits(usdcBalanceData, 6)).toFixed(2)
+      : '0.00';
 
   // Daily Gift Claim Transaction (EIP-5792)
   const { sendCalls: sendGiftCalls, data: giftCallId, error: giftError, isPending: isGiftPending, reset: resetGift } = useSendCalls();
@@ -191,46 +211,11 @@ export default function Home() {
       const rootUrl = process.env.NEXT_PUBLIC_URL || 'https://your-app-url.com';
       const formattedAmount = (parseInt(dailyAmount) / 1000000).toFixed(6); // USDC Logic
       sdk.actions.composeCast({
-        text: `I just won ${formattedAmount} USDC! 🎁🎄 Go claim yours on Xmas PFP`,
+        text: `I just won ${formattedAmount} USDC! 💘 Spun the Love Pot on Xmas PFP`,
         embeds: [rootUrl],
       });
     }
   }, [isGiftConfirmed, dailyAmount]);
-
-  // Check if user has already generated an image
-  useEffect(() => {
-    const checkExistingGeneration = async () => {
-      try {
-        await withRetry(async () => {
-          const { token } = await sdk.quickAuth.getToken();
-          const response = await fetch('/api/generated-image', {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-
-          if (!response.ok) throw new Error('Failed to fetch generated image');
-          const data = await response.json();
-          if (data.hasGenerated && data.imageUrl) {
-            setGeneratedImageUrl(data.imageUrl);
-            setHasAlreadyGenerated(true);
-            if (data.hasMinted) {
-              setHasMinted(true);
-            }
-          }
-        }, 3, 1000);
-      } catch (error) {
-        console.error('Error checking existing generation after retries:', error);
-      }
-    };
-
-    if (fid) {
-      checkExistingGeneration();
-    }
-  }, [fid]);
-
-
 
   const handleSetError = (errorMessage: string) => {
     if (errorTimeout) {
@@ -243,297 +228,14 @@ export default function Home() {
     setErrorTimeout(timeout);
   };
 
-
-
   const shortenAddress = (addr: string) => {
     if (!addr) return '';
     return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
   };
 
-
-  const generateImage = async () => {
-    const sourceImage = pfpUrl || nftImageUrl;
-    if (!sourceImage) return;
-    setIsGenerating(true);
-    setError(null);
-    try {
-      const { token } = await sdk.quickAuth.getToken();
-      const res = await withRetry(async () => {
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ imageUrl: sourceImage, religion: 'Christian' }),
-        });
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.statusText}`);
-        }
-        return response;
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setGeneratedImageUrl(data.newImageUrl);
-        setHasAlreadyGenerated(true);
-
-        // Save generated image to database
-        try {
-          const { token: saveToken } = await sdk.quickAuth.getToken();
-          await fetch('/api/generated-image', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${saveToken}`,
-            },
-            body: JSON.stringify({ imageUrl: data.newImageUrl }),
-          });
-        } catch (saveError) {
-          console.error('Error saving generated image:', saveError);
-        }
-
-        // Play santa sound on success
-        if (santaAudioRef.current) {
-          santaAudioRef.current.currentTime = 0;
-          santaAudioRef.current.play().catch(e => console.log('Audio play failed:', e));
-        }
-      } else {
-        handleSetError("rate limited. please try again");
-      }
-    } catch (err) {
-      handleSetError("rate limited. please try again");
-      console.error(err);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-
-  const handleGenerateSmile = async () => {
-    if (!pfpUrl && !nftImageUrl) return;
-
-    setIsGenerating(true); // Show loader immediately
-
-    try {
-      await generateImage();
-    } catch (err) {
-      handleSetError("Failed to generate image.");
-      console.error(err);
-      setIsGenerating(false);
-    }
-  };
-
-  useEffect(() => {
-    if (mintError) {
-      console.error("A minting error occurred:", mintError);
-      if (mintError.message.includes('User rejected the request')) {
-        setUserRejectedError(true);
-        setTimeout(() => setUserRejectedError(false), 5000);
-      } else {
-        handleSetError(`Minting failed: ${mintError.message}`);
-      }
-    }
-    // Also handle gift errors
-    if (giftError) {
-      console.error("A gift claim error occurred:", giftError);
-      if (giftError.message.includes('User rejected the request')) {
-        setUserRejectedError(true);
-        setTimeout(() => setUserRejectedError(false), 5000);
-      } else {
-        handleSetError(`Claim failed: ${giftError.message}`);
-      }
-    }
-  }, [mintError, giftError]);
-
-
-  // Note: We use mintCallId as the "hash" equivalent for EIP-5792 logging/tracking if needed,
-  // but strictly speaking it's a batch ID, not a tx hash until confirmed.
-  // The 'mintStatus' object might contain the receipts once confirmed.
-
-  useEffect(() => {
-    // Check for success via useCallsStatus
-    if (isConfirmed && generatedImageUrl) {
-      const saveMintToDb = async () => {
-        setIsSavingToGallery(true);
-        try {
-          const { token } = await sdk.quickAuth.getToken();
-          // Ideally we would want the actual TX Hash here.
-          // With useCallsStatus, we get `data.receipts` array.
-          const txHash = mintStatus?.receipts?.[0]?.transactionHash || mintCallId?.id;
-
-          const response = await fetch('/api/nft/mint', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              imageData: generatedImageUrl,
-              txHash: txHash
-            }),
-          });
-
-          const data = await response.json();
-
-          // Safe debugging log
-          console.log("Parsed response from /api/nft/mint. Data keys:", Object.keys(data));
-
-          if (response.ok && data.imageUrl) {
-            console.log("Found tokenUri, setting state.", data.imageUrl);
-            setFinalIpfsUrl(data.imageUrl);
-
-            // Mark as minted in GeneratedImage table
-            await fetch('/api/generated-image', {
-              method: 'PATCH',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            });
-            setHasMinted(true);
-          } else {
-            throw new Error(data.error || "Failed to save mint to DB.");
-          }
-        } catch (error) {
-          console.error("Failed to save mint to DB:", error);
-          handleSetError("Minted, but failed to save to gallery.");
-        } finally {
-          setIsSavingToGallery(false);
-        }
-      };
-      saveMintToDb();
-    }
-  }, [isConfirmed, mintStatus, mintCallId, generatedImageUrl]);
-
-  const handleMint = async () => {
-    if (!generatedImageUrl || !address) return;
-
-    setIsPreparingMint(true);
-    // Upload image to IPFS first
-    try {
-      const imageUrl = await uploadImage(generatedImageUrl);
-
-      // Prepare capabilities for Paymaster if URL is set
-      const capabilities = process.env.NEXT_PUBLIC_PAYMASTER_URL ? {
-        paymasterService: {
-          url: process.env.NEXT_PUBLIC_PAYMASTER_URL
-        }
-      } : undefined;
-
-      sendCalls({
-        calls: [{
-          to: CONTRACT_ADDRESS,
-          abi: xmasAbi,
-          functionName: 'safeMint',
-          args: [address, imageUrl],
-          value: parseEther("0"), // Free mint
-        }],
-        capabilities
-      });
-
-    } catch (error) {
-      console.error('Error uploading image for mint:', error);
-      handleSetError('Failed to prepare mint. Please try again.');
-    } finally {
-      setIsPreparingMint(false);
-    }
-  };
-
-  const uploadImage = async (imageData: string) => {
-    const { token } = await sdk.quickAuth.getToken();
-    const response = await fetch('/api/upload-image', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ imageData }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to upload image');
-    }
-
-    const { url } = await response.json();
-    return url;
-  };
-
-  const handleDownload = async () => {
-    if (!generatedImageUrl) return;
-    setIsDownloading(true);
-
-    try {
-      let urlToOpen = generatedImageUrl;
-
-      if (generatedImageUrl.startsWith('data:')) {
-        urlToOpen = await uploadImage(generatedImageUrl);
-      }
-
-      sdk.actions.openUrl(urlToOpen);
-    } catch (error) {
-      console.error("Error opening image:", error);
-      handleSetError("Failed to open image in browser.");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleShare = async () => {
-    const rootUrl = process.env.NEXT_PUBLIC_URL || 'https://your-app-url.com';
-    if (!generatedImageUrl) return;
-
-    setIsSharing(true);
-
-    try {
-      let imageUrlToShare = finalIpfsUrl || generatedImageUrl;
-
-      if (imageUrlToShare.startsWith('data:')) {
-        imageUrlToShare = await uploadImage(imageUrlToShare);
-      }
-
-      sdk.actions.composeCast({
-        text: "I just updated my pfp for Christmas 🎄🎄 on Xmas PFP by @dxfareed",
-        embeds: [imageUrlToShare, rootUrl],
-      });
-    } catch (error) {
-      console.error("Error sharing:", error);
-      handleSetError("Failed to share image.");
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-  const handleGenerateNew = () => {
-    sdk.haptics.impactOccurred('medium');
-    setGeneratedImageUrl(null);
-    resetMint();
-  };
-
-  const handleAddToken = async () => {
-    if (!walletClient || !tokenAddress || !tokenSymbol) return;
-    try {
-      await walletClient.request({
-        method: 'wallet_watchAsset',
-        params: {
-          type: 'ERC20',
-          options: {
-            address: tokenAddress,
-            symbol: tokenSymbol,
-            decimals: tokenDecimals,
-          },
-        },
-      });
-      sdk.haptics.notificationOccurred('success');
-    } catch (e) {
-      console.error("Failed to add token to wallet:", e);
-      handleSetError("Failed to add token to wallet.");
-    }
-  };
-
   return (
     <div className={styles.container}>
       <audio ref={audioRef} src="/sound/xmassound.mp3" autoPlay loop />
-      <audio ref={santaAudioRef} src="/sound/santa.mp3" />
       <button
         className={styles.muteButton}
         onClick={() => {
@@ -574,9 +276,9 @@ export default function Home() {
           <Loader />
         ) : !isInFarcaster ? (
           <div className={styles.notFarcasterMessage}>
-            <h2>🎄 Oops!</h2>
+            <h2>💘 Oops!</h2>
             <p>This app is only available on Farcaster.</p>
-            <p>Please open this in <strong>Farcaster</strong> or another Farcaster client to use Xmas PFP.</p>
+            <p>Please open this in <strong>Farcaster</strong> or another Farcaster client to use Love Pot.</p>
             <a href="https://farcaster.xyz" target="_blank" rel="noopener noreferrer" className={styles.modernButton}>
               Open Farcaster
             </a>
@@ -585,7 +287,7 @@ export default function Home() {
           <div className={styles.mainContainer}>
             {error && <p className={styles.errorText}>{error}</p>}
 
-            {/* Daily Gift Section - CENTERED HERO */}
+            {/* Daily Gift Section - renamed conceptually to Love Pot */}
             {isConnected && DAILY_GIFT_CONTRACT && (
               <div className={styles.giftSection}>
                 <DailyGiftCard
@@ -622,89 +324,13 @@ export default function Home() {
                     }
                   }}
                   revealedAmount={revealedAmount}
+                  potBalance={potBalanceDisplay}
                 />
                 <div style={{ marginTop: '1rem', overflow: 'hidden', borderRadius: '8px' }}>
                   <LiveWinnersMarquee />
                 </div>
               </div>
             )}
-
-
-            {/* Secondary: PFP Generator */}
-            <div className={styles.generatorSection}>
-              <h3>Xmas PFP Generator</h3>
-              <div className={styles.imageContainerSmall}>
-                <Image
-                  key={generatedImageUrl || pfpUrl || nftImageUrl}
-                  src={generatedImageUrl || pfpUrl || nftImageUrl || ''}
-                  alt="Creature"
-                  width={150}
-                  height={150}
-                  className={`${styles.imageFadeIn} ${isGenerating ? styles.heartbeat : ''}`}
-                />
-              </div>
-
-              {generatedImageUrl ? (
-                (hasMinted || isConfirmed) ? (
-                  <div className={styles.buttonGroup}>
-                    <button
-                      className={`${styles.modernButton} ${styles['share-button-background']}`}
-                      onClick={handleShare}
-                      disabled={isSharing || isDownloading}
-                    >
-                      {isSharing ? 'Sharing...' : 'Share'}
-                    </button>
-                    <button
-                      className={styles.modernButton}
-                      onClick={handleDownload}
-                      disabled={isSharing || isDownloading}
-                    >
-                      {isDownloading ? 'Opening...' : 'Download'}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    className={styles.modernButton}
-                    onClick={handleMint}
-                    disabled={isPreparingMint || isMinting || isConfirming || !isConnected}
-                  >
-                    {isPreparingMint ? <Loader /> : isMinting ? 'Minting...' : isConfirming ? 'Confirming...' : !isConnected ? 'Connect Wallet' : 'Mint (Free)'}
-                  </button>
-                )
-              ) : (
-                <button
-                  className={styles.modernButton}
-                  onClick={handleGenerateSmile}
-                  disabled={isGenerating || isPreparing}
-                >
-                  {isGenerating ? (
-                    <Loader />
-                  ) : isPreparing ? (
-                    "Preparing..."
-                  ) : (
-                    "Generate New PFP"
-                  )}
-                </button>
-              )}
-
-              {isConfirmed && (
-                <div className={styles.successMessage}>
-                  <p>Minted Successfully!</p>
-                  {/* Note: With batch calls, we might have multiple receipts. Linking to the first one for now. */}
-                  {mintStatus?.receipts?.[0]?.transactionHash && (
-                    <a
-                      href={`https://basescan.org/tx/${mintStatus.receipts[0].transactionHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.link}
-                    >
-                      View on Basescan
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-
           </div>
         )}
       </main>

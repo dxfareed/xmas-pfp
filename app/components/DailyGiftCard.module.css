@@ -1,10 +1,10 @@
-/* Degen / Casino Theme */
+/* Degen / Love Pot Theme */
 .card {
     background: #0a0a0a;
     /* distinct dark background */
-    border: 2px solid #39FF14;
-    /* Neon Green */
-    box-shadow: 0 0 15px rgba(57, 255, 20, 0.4), inset 0 0 20px rgba(0, 0, 0, 0.8);
+    border: 2px solid #FF004D;
+    /* Neon Red */
+    box-shadow: 0 0 15px rgba(255, 0, 77, 0.4), inset 0 0 20px rgba(0, 0, 0, 0.8);
     border-radius: 16px;
     padding: 2.5rem;
     width: 100%;
@@ -22,7 +22,7 @@
 
 .card:hover {
     transform: scale(1.02);
-    box-shadow: 0 0 25px rgba(57, 255, 20, 0.6), inset 0 0 10px rgba(57, 255, 20, 0.1);
+    box-shadow: 0 0 25px rgba(255, 0, 77, 0.6), inset 0 0 10px rgba(255, 0, 77, 0.1);
 }
 
 /* Header */
@@ -39,11 +39,26 @@
 
 .subtitle {
     font-size: 0.9rem;
-    color: #888;
+    color: #FF69B4;
+    /* Hot Pink */
     font-weight: 500;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
+    /* Reduced margin */
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+.potBalance {
+    font-size: 1.1rem;
+    color: #fff;
+    background: rgba(255, 0, 77, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #FF004D;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 10px #FF004D;
+    box-shadow: 0 0 10px rgba(255, 0, 77, 0.3);
 }
 
 /* Mystery Box Container */
@@ -56,7 +71,7 @@
     margin-bottom: 2rem;
     position: relative;
     cursor: pointer;
-    background: radial-gradient(circle, rgba(57, 255, 20, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+    background: radial-gradient(circle, rgba(255, 0, 77, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
 }
 
 .giftImage {
@@ -151,17 +166,17 @@
 @keyframes pulse {
     0% {
         transform: scale(1);
-        filter: drop-shadow(0 0 0px #39FF14);
+        filter: drop-shadow(0 0 0px #FF004D);
     }
 
     50% {
         transform: scale(1.05);
-        filter: drop-shadow(0 0 10px #39FF14);
+        filter: drop-shadow(0 0 10px #FF004D);
     }
 
     100% {
         transform: scale(1);
-        filter: drop-shadow(0 0 0px #39FF14);
+        filter: drop-shadow(0 0 0px #FF004D);
     }
 }
 
@@ -185,16 +200,16 @@
 
 /* Button */
 .actionButton {
-    background: #39FF14;
-    /* Neon Green */
-    color: #000;
+    background: #FF004D;
+    /* Neon Red */
+    color: #fff;
     border: none;
     padding: 1.2rem 3rem;
     font-size: 1.4rem;
     font-weight: 900;
     text-transform: uppercase;
     cursor: pointer;
-    box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+    box-shadow: 0 0 20px rgba(255, 0, 77, 0.4);
     transition: all 0.1s ease;
     width: 100%;
     clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
@@ -206,9 +221,9 @@
 }
 
 .actionButton:hover:not(:disabled) {
-    background: #fff;
-    color: #000;
-    box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+    background: #FF69B4;
+    color: #fff;
+    box-shadow: 0 0 30px rgba(255, 105, 180, 0.8);
     transform: translateY(-2px);
 }
 
@@ -240,8 +255,8 @@
 
 .token {
     font-size: 1.5rem;
-    color: #39FF14;
-    text-shadow: 0 0 5px #39FF14;
+    color: #FF004D;
+    text-shadow: 0 0 5px #FF004D;
 }
 
 @keyframes zoomIn {
@@ -264,19 +279,19 @@
     top: 1rem;
     right: 1rem;
     padding: 0.25rem 0.75rem;
-    border: 1px solid #39FF14;
+    border: 1px solid #FF004D;
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
     background: rgba(0, 0, 0, 0.8);
-    color: #39FF14;
-    box-shadow: 0 0 5px #39FF14;
+    color: #FF004D;
+    box-shadow: 0 0 5px #FF004D;
 }
 
 .badge.ready {
-    border-color: #39FF14;
-    color: #39FF14;
+    border-color: #FF004D;
+    color: #FF004D;
     animation: flicker 2s infinite;
 }
 
@@ -295,10 +310,10 @@
     justify-content: center;
     gap: 0.5rem;
     margin-bottom: 1rem;
-    background: rgba(57, 255, 20, 0.1);
+    background: rgba(255, 0, 77, 0.1);
     padding: 0.5rem;
     border-radius: 20px;
-    border: 1px solid #39FF14;
+    border: 1px solid #FF004D;
 }
 
 .profileAvatar {
@@ -316,8 +331,8 @@
 
 .profileBadge {
     font-size: 0.7rem;
-    background: #39FF14;
-    color: #000;
+    background: #FF004D;
+    color: #fff;
     padding: 2px 6px;
     border-radius: 4px;
     font-weight: 900;
@@ -327,8 +342,8 @@
     background: #000;
     padding: 2rem;
     border-radius: 1rem;
-    border: 2px solid #39FF14;
-    box-shadow: 0 0 10px #39FF14;
+    border: 2px solid #FF004D;
+    box-shadow: 0 0 10px #FF004D;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -352,6 +367,12 @@
     .subtitle {
         font-size: 0.65rem;
         margin-bottom: 0.75rem;
+    }
+
+    .potBalance {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.6rem;
+        margin-bottom: 1rem;
     }
 
     .boxContainer {

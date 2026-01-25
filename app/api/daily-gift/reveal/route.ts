@@ -65,15 +65,20 @@ export async function POST(request: NextRequest) {
                     });
 
                     if (parsedLog.eventName === 'Played') {
-                        // Optional: Check if args match fid/sender
+                        // Safe Access: check both 'player' (ABI) and 'user' (Solidity) just in case
                         // @ts-ignore
                         const eventFid = parsedLog.args.fid;
                         // @ts-ignore
-                        const eventPlayer = parsedLog.args.player;
+                        const eventPlayer = parsedLog.args.player || parsedLog.args.user;
 
-                        if (String(eventFid) === String(fid) && eventPlayer.toLowerCase() === recipientAddress.toLowerCase()) {
+                        console.log(`- Found Played event. FID: ${eventFid}, Player: ${eventPlayer}`);
+
+                        if (String(eventFid) === String(fid) && eventPlayer && eventPlayer.toLowerCase() === recipientAddress.toLowerCase()) {
                             playedEventFound = true;
+                            console.log(`- Event Verified!`);
                             break;
+                        } else {
+                            console.warn(`- Event mismatch. Expected FID: ${fid}, Player: ${recipientAddress}. Got FID: ${eventFid}, Player: ${eventPlayer}`);
                         }
                     }
                 }
@@ -83,6 +88,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (!playedEventFound) {
+            console.warn("- No valid Played event found in logs.");
             return NextResponse.json({ message: "Invalid transaction: Played event not found or mismatch" }, { status: 400 });
         }
 
@@ -94,7 +100,6 @@ export async function POST(request: NextRequest) {
         console.log(`- Sending Payout: ${amount} to ${recipientAddress}`);
 
         // 4. Send Payout (Server Transaction)
-        // We act as Owner calling payout()
         const hash = await walletClient.writeContract({
             address: DAILY_GIFT_CONTRACT,
             abi: dailyGiftAbi,
@@ -103,11 +108,6 @@ export async function POST(request: NextRequest) {
         });
 
         console.log(`- Payout Tx: ${hash}`);
-
-        // Optional: Wait for payout confirmation? Or just return success and let UI poll/wait?
-        // Returning success immediately makes UI snappy (it shows "You Logged Win", actual funds arrive soon)
-        // But users might check balance immediately.
-        // Let's return the hash and amount.
 
         return NextResponse.json({
             success: true,
@@ -118,7 +118,6 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error("Reveal Error:", error);
 
-        // Handle "insufficient funds" explicitly
         if (error.message && error.message.includes("Insufficient funds")) {
             return NextResponse.json({ message: "Server wallet out of funds. Contact support." }, { status: 500 });
         }

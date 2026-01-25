@@ -1,11 +1,8 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import styles from './DailyGiftCard.module.css';
-import { Gift, Loader2, Sparkles } from 'lucide-react';
+import { Gift, Loader2, Sparkles, Heart } from 'lucide-react';
 import Confetti from 'react-confetti';
-import Countdown from './Countdown';
-import { formatEther } from 'viem';
 
 // Types
 type GiftState = 'LOCKED' | 'READY' | 'REQUESTING' | 'WAITING_VRF' | 'OPENING' | 'REVEALED';
@@ -16,7 +13,8 @@ interface DailyGiftCardProps {
     tokenSymbol: string;
     username?: string | null;
     pfpUrl?: string | null;
-    revealedAmount?: string | null; // Async reveal amount
+    revealedAmount?: string | null;
+    potBalance?: string; // New Prop
 }
 
 export default function DailyGiftCard({
@@ -25,7 +23,8 @@ export default function DailyGiftCard({
     tokenSymbol,
     username,
     pfpUrl,
-    revealedAmount
+    revealedAmount,
+    potBalance
 }: DailyGiftCardProps) {
     const [state, setState] = useState<GiftState>('READY');
     const [rewardAmount, setRewardAmount] = useState<string>('0');
@@ -88,12 +87,16 @@ export default function DailyGiftCard({
                 </div>
             )}
 
-            {/* Status Badge */}
-
-            <h2 className={styles.title}>Daily Mystery Box</h2>
+            <h2 className={styles.title}>Daily Love Pot 💘</h2>
             <p className={styles.subtitle}>
-                SPIN TO WIN • 0.0001 ETH
+                DIP FOR LOVE • 0.0001 ETH
             </p>
+            {/* Show Pot Balance */}
+            {potBalance && (
+                <div className={styles.potBalance}>
+                    🏆 Pot Size: {potBalance} USDC
+                </div>
+            )}
 
             {/* Main Visual Area */}
             <div className={styles.boxContainer} onClick={state === 'READY' ? handleOpen : undefined}>
@@ -102,7 +105,7 @@ export default function DailyGiftCard({
                         <div className={styles.amount}>
                             {rewardAmount} <span className={styles.token}>{tokenSymbol || 'USDC'}</span>
                         </div>
-                        <Sparkles size={48} color="#39FF14" />
+                        <Sparkles size={48} color="#FF004D" />
                     </div>
                 ) : (
                     <div className={`
@@ -110,7 +113,7 @@ export default function DailyGiftCard({
                         ${state === 'OPENING' || state === 'WAITING_VRF' ? styles.shaking : styles.floating}
                     `}>
                         <div className={styles.giftBoxInner}>
-                            <Gift size={64} color="#39FF14" />
+                            <Heart size={80} color="#FF004D" fill="#FF004D" />
                         </div>
                     </div>
                 )}
@@ -119,7 +122,7 @@ export default function DailyGiftCard({
             {/* Action Area */}
             {state === 'READY' ? (
                 <button className={styles.actionButton} onClick={handleOpen}>
-                    SPIN (0.0001 ETH)
+                    DIP IN THE POT
                 </button>
             ) : state === 'REQUESTING' ? (
                 <button className={styles.actionButton} disabled>
