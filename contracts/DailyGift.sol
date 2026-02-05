@@ -22,6 +22,7 @@ contract DailyGift is Ownable, ReentrancyGuard, Pausable {
     event Played(uint256 indexed fid, address indexed player, uint256 timestamp);
     event Payout(uint256 indexed fid, address indexed player, uint256 amount);
     event TokenUpdated(address newToken);
+    event EntryFeePaid(uint256 indexed fid, address indexed player, uint256 amount, uint256 timestamp);
 
     // --- Errors ---
     error InvalidEntryFee();
@@ -38,7 +39,7 @@ contract DailyGift is Ownable, ReentrancyGuard, Pausable {
         if (msg.value != ENTRY_FEE) revert InvalidEntryFee();
         
         lastPlayedTime[fid] = block.timestamp;
-        
+        emit EntryFeePaid(fid, msg.sender, msg.value, block.timestamp);
         emit Played(fid, msg.sender, block.timestamp);
     }
 
